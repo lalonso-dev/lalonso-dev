@@ -1,5 +1,5 @@
 ---
-import SectionTitle from '@/components/ui/SectionTitle.astro';
+import SectionTitle from "@/components/ui/SectionTitle.astro";
 
 const services = [
   {
@@ -26,14 +26,18 @@ const services = [
 ];
 ---
 
-<section class="section-padding pt-[1rem] bg-[#f4f6f8] dark:bg-bg-secondary/30">
+<section class="section-padding pt-[1rem] bg-[#f4f6f8] dark:bg-transparent">
   <div class="container-custom">
     <SectionTitle label="SERVICIOS" title="Cómo puedo ayudar a tu negocio" />
 
     <div class="grid gap-4 md:grid-cols-3">
       {
         services.map((service, index) => (
-          <div class="glass-card p-6" data-reveal data-reveal-delay={String(index * 80)}>
+          <div
+            class="glass-card p-6"
+            data-reveal
+            data-reveal-delay={String(index * 80)}
+          >
             <div class="mb-4 inline-flex rounded-md bg-bg-tertiary p-2 text-accent-primary">
               <svg
                 class="h-5 w-5"

@@ -34,6 +34,7 @@ pnpm-debug.log*
 
 # TypeScript
 *.tsbuildinfo
+AGENTS.md
 
 # Optional: lock files (descomenta si usas solo un package manager)
 # package-lock.json

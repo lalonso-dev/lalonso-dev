@@ -1,7 +1,7 @@
 ---
-import { Image } from 'astro:assets';
-import type { CollectionEntry } from 'astro:content';
-import Badge from '@/components/ui/Badge.astro';
+import { Image } from "astro:assets";
+import type { CollectionEntry } from "astro:content";
+import Badge from "@/components/ui/Badge.astro";
 
 interface Props {
   project: CollectionEntry<"projects">;
@@ -45,7 +45,7 @@ const url = externalProject ? liveUrl : `/proyectos/${project.slug}`;
         <Badge text={category} variant="accent" />
         {
           technologies
-            .slice(0, 1)
+            .slice(0, 2)
             .map((tech) => <Badge text={tech} variant="default" />)
         }
       </div>

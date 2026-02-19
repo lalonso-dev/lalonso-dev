@@ -143,16 +143,25 @@
     will-change: opacity, transform;
   }
 
-  [data-reveal='left'] {
+  [data-reveal="left"] {
     transform: translateX(-20px);
   }
 
-  [data-reveal='right'] {
+  [data-reveal="right"] {
     transform: translateX(20px);
   }
 
   [data-reveal].is-revealed {
     opacity: 1;
     transform: translate(0, 0);
+  }
+}
+
+.body__project {
+  h2 {
+    margin: 0.9rem 0rem !important;
+    &:first-child {
+      margin-top: 0rem !important;
+    }
   }
 }

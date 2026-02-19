@@ -71,7 +71,7 @@ const statusLabels: Record<string, string> = {
       <div class="container-custom">
         <div class="grid gap-8 lg:grid-cols-[1fr_300px]">
           <div
-            class="prose prose-lg max-w-none prose-headings:font-heading prose-headings:text-text-primary prose-p:text-text-secondary prose-a:text-accent-primary prose-strong:text-text-primary prose-code:rounded prose-code:bg-bg-tertiary prose-code:px-1.5 prose-code:py-0.5 prose-pre:border prose-pre:border-border prose-pre:bg-bg-secondary dark:prose-invert"
+            class="body__project prose prose-lg max-w-none prose-headings:font-heading prose-headings:text-text-primary prose-p:text-text-secondary prose-a:text-accent-primary prose-strong:text-text-primary prose-code:rounded prose-code:bg-bg-tertiary prose-code:px-1.5 prose-code:py-0.5 prose-pre:border prose-pre:border-border prose-pre:bg-bg-secondary dark:prose-invert"
           >
             <slot />
           </div>
@@ -152,7 +152,7 @@ const statusLabels: Record<string, string> = {
 
     {
       frontmatter.testimonial && (
-        <section class="section-padding">
+        <section class="section-padding pb-0 pt-3">
           <div class="container-custom max-w-3xl px-4 sm:px-6 lg:px-8">
             <h2 class="mb-6 text-center font-heading text-4xl font-bold">
               Client Testimonial

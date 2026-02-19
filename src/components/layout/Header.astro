@@ -16,7 +16,7 @@ const currentPath = Astro.url.pathname;
 
 <header
   id="site-header"
-  class="fixed left-0 right-0 top-0 z-50 border-b border-border/40 dark:bg-bg-primary/95 bg-white dark:bg-transparent backdrop-blur-0 dark:backdrop-blur dark:backdrop-blur transition-transform duration-300 will-change-transform"
+  class="fixed left-0 right-0 top-0 z-50 border-b border-border/40 dark:bg-bg-primary/95 bg-white dark:bg-bg-primary md:dark:bg-transparent backdrop-blur-0 md:dark:backdrop-blur transition-transform duration-300 will-change-transform"
 >
   <nav class="container-custom flex h-16 items-center justify-between">
     <a
@@ -49,7 +49,7 @@ const currentPath = Astro.url.pathname;
     <div class="hidden items-center gap-2 md:flex">
       <ThemeToggle />
       <a
-        href="/cv.pdf"
+        href="/cv-Lucas-A-A-c-2026.pdf"
         class="rounded-lg bg-accent-primary px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110"
         target="_blank"
         rel="noopener noreferrer"
@@ -96,10 +96,7 @@ const currentPath = Astro.url.pathname;
     </div>
   </nav>
 
-  <div
-    id="mobile-menu"
-    class="hidden border-t border-border/70 bg-bg-primary/95 px-4 py-4 md:hidden"
-  >
+  <div id="mobile-menu" class="hidden bg-bg-primary/95 px-4 py-4 md:hidden">
     <div class="container-custom space-y-2">
       {
         navLinks.map((link) => (
