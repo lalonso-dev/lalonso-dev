@@ -1,0 +1,188 @@
+---
+import { Image } from "astro:assets";
+import ThemeToggle from "./ThemeToggle.astro";
+import LogoPage from "@/assets/logo.svg";
+
+const navLinks = [
+  { label: "Inicio", href: "/" },
+  { label: "Sobre mí", href: "/sobre-mi" },
+  { label: "Proyectos", href: "/proyectos" },
+  { label: "Servicios", href: "/servicios" },
+  { label: "Contacto", href: "/contacto" },
+];
+
+const currentPath = Astro.url.pathname;
+---
+
+<header
+  id="site-header"
+  class="fixed left-0 right-0 top-0 z-50 border-b border-border/40 dark:bg-bg-primary/95 bg-white dark:bg-transparent backdrop-blur-0 dark:backdrop-blur dark:backdrop-blur transition-transform duration-300 will-change-transform"
+>
+  <nav class="container-custom flex h-16 items-center justify-between">
+    <a
+      href="/"
+      class="inline-flex items-center gap-2 text-[30px] font-bold text-text-primary"
+    >
+      <Image
+        src={LogoPage}
+        alt="lalonso"
+        width={200}
+        height={50}
+        class="h-8 w-auto"
+      />
+      <span class="hidden lg:block text-[25px] tracking-wide"> lalonso </span>
+    </a>
+
+    <div class="hidden items-center gap-1 md:flex">
+      {
+        navLinks.map((link) => (
+          <a
+            href={link.href}
+            class={`nav-link text-[15px] ${currentPath === link.href || (link.href !== "/" && currentPath.startsWith(link.href)) ? "nav-link-active" : ""}`}
+          >
+            {link.label}
+          </a>
+        ))
+      }
+    </div>
+
+    <div class="hidden items-center gap-2 md:flex">
+      <ThemeToggle />
+      <a
+        href="/cv.pdf"
+        class="rounded-lg bg-accent-primary px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Descargar CV
+      </a>
+    </div>
+
+    <div class="flex items-center gap-2 md:hidden">
+      <ThemeToggle />
+      <button
+        id="mobile-menu-btn"
+        type="button"
+        aria-label="Abrir menú"
+        class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border text-text-secondary"
+      >
+        <svg
+          class="h-5 w-5"
+          id="menu-open-icon"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M4 6h16M4 12h16M4 18h16"></path>
+        </svg>
+        <svg
+          class="hidden h-5 w-5"
+          id="menu-close-icon"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+  </nav>
+
+  <div
+    id="mobile-menu"
+    class="hidden border-t border-border/70 bg-bg-primary/95 px-4 py-4 md:hidden"
+  >
+    <div class="container-custom space-y-2">
+      {
+        navLinks.map((link) => (
+          <a
+            href={link.href}
+            class={`block rounded-xl px-4 py-3 text-sm font-medium ${currentPath === link.href || (link.href !== "/" && currentPath.startsWith(link.href)) ? "bg-accent-primary/15 text-accent-primary" : "text-text-secondary hover:bg-bg-tertiary hover:text-text-primary"}`}
+          >
+            {link.label}
+          </a>
+        ))
+      }
+      <a
+        href="/cv.pdf"
+        class="mt-2 block rounded-xl bg-accent-primary px-4 py-3 text-center text-sm font-semibold text-white"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Descargar CV
+      </a>
+    </div>
+  </div>
+</header>
+
+<script>
+  const btn = document.getElementById("mobile-menu-btn");
+  const menu = document.getElementById("mobile-menu");
+  const openIcon = document.getElementById("menu-open-icon");
+  const closeIcon = document.getElementById("menu-close-icon");
+
+  btn?.addEventListener("click", () => {
+    menu?.classList.toggle("hidden");
+    openIcon?.classList.toggle("hidden");
+    closeIcon?.classList.toggle("hidden");
+  });
+
+  const initHeadroom = () => {
+    const header = document.getElementById("site-header");
+    if (!header) return;
+
+    const applyHeadroom = () => {
+      const headroom = new window.Headroom(header, {
+        offset: 72,
+        tolerance: { up: 6, down: 6 },
+        classes: {
+          initial: "headroom",
+          pinned: "headroom--pinned",
+          unpinned: "headroom--unpinned",
+          top: "headroom--top",
+          notTop: "headroom--not-top",
+          bottom: "headroom--bottom",
+          notBottom: "headroom--not-bottom",
+        },
+      });
+      headroom.init();
+    };
+
+    if (window.Headroom) {
+      applyHeadroom();
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src =
+      "https://cdn.jsdelivr.net/npm/headroom.js@0.12.0/dist/headroom.min.js";
+    script.async = true;
+    script.onload = applyHeadroom;
+    document.head.appendChild(script);
+  };
+
+  initHeadroom();
+</script>
+
+<style>
+  #site-header.headroom--unpinned {
+    transform: translateY(-100%);
+  }
+  #site-header.headroom--top {
+    border-bottom: 0px;
+  }
+  #site-header.headroom--pinned {
+    transform: translateY(0);
+  }
+  #site-header.headroom--not-top {
+    box-shadow: 0 8px 26px -22px rgba(15, 23, 42, 0.45);
+  }
+</style>

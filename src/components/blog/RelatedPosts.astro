@@ -1,0 +1,22 @@
+---
+import PostCard from './PostCard.astro';
+import SectionTitle from '@/components/ui/SectionTitle.astro';
+import type { CollectionEntry } from 'astro:content';
+
+interface Props {
+  posts: CollectionEntry<'blog'>[];
+}
+
+const { posts } = Astro.props;
+---
+
+<section class="section-padding bg-bg-secondary">
+  <div class="container-custom max-w-4xl">
+    <SectionTitle title="Posts Relacionados" align="center" />
+    <div class="grid md:grid-cols-3 gap-6">
+      {posts.map((post) => (
+        <PostCard post={post} />
+      ))}
+    </div>
+  </div>
+</section>

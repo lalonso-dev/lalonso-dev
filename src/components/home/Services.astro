@@ -1,0 +1,65 @@
+---
+import SectionTitle from '@/components/ui/SectionTitle.astro';
+
+const services = [
+  {
+    icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2" />',
+    title: "Desarrollo CMS",
+    description:
+      "Migración a arquitectura headless para sistemas de contenido más rápidos y escalables.",
+    points: ["Configuración Strapi y Craft CMS", "Entrega multicanal"],
+  },
+  {
+    icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />',
+    title: "Optimización de rendimiento",
+    description:
+      "Convierto sitios lentos en experiencias rápidas y orientadas a conversión.",
+    points: ["90+ en Lighthouse", "Reducción de bundle"],
+  },
+  {
+    icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />',
+    title: "Arquitectura Full Stack",
+    description:
+      "Diseño end-to-end desde base de datos y APIs hasta pipelines de despliegue.",
+    points: ["Diseño de APIs escalables", "Infraestructura cloud"],
+  },
+];
+---
+
+<section class="section-padding pt-[1rem] bg-[#f4f6f8] dark:bg-bg-secondary/30">
+  <div class="container-custom">
+    <SectionTitle label="SERVICIOS" title="Cómo puedo ayudar a tu negocio" />
+
+    <div class="grid gap-4 md:grid-cols-3">
+      {
+        services.map((service) => (
+          <div class="glass-card p-6">
+            <div class="mb-4 inline-flex rounded-md bg-bg-tertiary p-2 text-accent-primary">
+              <svg
+                class="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                set:html={service.icon}
+              />
+            </div>
+            <h3 class="mb-2 font-heading text-xl font-semibold">
+              {service.title}
+            </h3>
+            <p class="mb-4 text-sm text-text-secondary">
+              {service.description}
+            </p>
+            <ul class="space-y-1.5 text-xs text-text-secondary">
+              {service.points.map((point) => (
+                <li class="flex items-center gap-2">
+                  <span class="h-1.5 w-1.5 rounded-full bg-accent-primary" />
+                  {point}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</section>

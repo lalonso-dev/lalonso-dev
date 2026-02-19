@@ -1,0 +1,20 @@
+---
+interface Props {
+  categories: string[];
+}
+
+const { categories } = Astro.props;
+---
+
+<div class="mb-10 flex flex-wrap gap-2" id="project-filters" data-active-filter="all">
+  <button type="button" class="filter-btn rounded-full bg-accent-primary px-5 py-2 text-sm font-semibold text-white" data-filter="all">Todos</button>
+  {categories.map((category) => (
+    <button
+      type="button"
+      class="filter-btn rounded-full border border-border/80 bg-bg-secondary px-5 py-2 text-sm font-medium text-text-secondary transition hover:border-accent-primary/40 hover:text-text-primary"
+      data-filter={category}
+    >
+      {category}
+    </button>
+  ))}
+</div>

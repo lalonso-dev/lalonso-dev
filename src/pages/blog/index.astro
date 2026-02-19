@@ -1,0 +1,279 @@
+---
+import { Image } from "astro:assets";
+import avatar from "@/assets/avatar.svg";
+import Profile from "@/assets/avatar3.webp";
+import PageLayout from "@/layouts/PageLayout.astro";
+import PostCard from "@/components/blog/PostCard.astro";
+import CategoryFilter from "@/components/blog/CategoryFilter.astro";
+import CTA from "@/components/home/CTA.astro";
+import { getCollection } from "astro:content";
+
+const allPosts = (await getCollection("blog", ({ data }) => !data.draft)).sort(
+  (a, b) => b.data.date.valueOf() - a.data.date.valueOf(),
+);
+const categories = [...new Set(allPosts.flatMap((p) => p.data.categories))];
+
+const featuredPost = allPosts[0];
+const otherPosts = allPosts.slice(1);
+---
+
+<PageLayout
+  title="Blog | lalonso.dev"
+  description="Artículos sobre desarrollo web, rendimiento, arquitectura y mejores prácticas."
+>
+  <section class="section-padding pt-28 sm:pt-32">
+    <div class="container-custom">
+      <div class="grid gap-8 lg:grid-cols-[1fr_310px]">
+        <div class="space-y-6">
+          <div class="glass-card relative overflow-hidden p-7 sm:p-10">
+            <div
+              class="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(37,99,235,0.23),transparent_40%)]"
+            >
+            </div>
+            <h1
+              class="relative mb-4 font-heading text-5xl font-bold sm:text-6xl"
+            >
+              Blog & Artículos
+            </h1>
+            <p class="relative max-w-2xl text-text-secondary">
+              Guías prácticas de arquitectura web, performance y desarrollo
+              full-stack para equipos y productos digitales.
+            </p>
+          </div>
+
+          <div class="relative">
+            <svg
+              class="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-text-secondary"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              ><path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg
+            >
+            <input
+              type="text"
+              id="blog-search"
+              placeholder="Buscar artículos"
+              class="w-full rounded-xl border border-border bg-bg-secondary py-3 pl-12 pr-4 text-text-primary placeholder:text-text-secondary focus:border-accent-primary focus:outline-none"
+            />
+          </div>
+
+          <CategoryFilter categories={categories} />
+
+          {
+            featuredPost && (
+              <div
+                class="mb-8"
+                id="featured-post-wrap"
+                data-title={featuredPost.data.title.toLowerCase()}
+                data-categories={featuredPost.data.categories
+                  .join(",")
+                  .toLowerCase()}
+              >
+                <PostCard post={featuredPost} />
+              </div>
+            )
+          }
+
+          <div class="grid gap-6 sm:grid-cols-2" id="posts-grid">
+            {
+              otherPosts.map((post) => (
+                <div
+                  data-title={post.data.title.toLowerCase()}
+                  data-categories={post.data.categories.join(",").toLowerCase()}
+                >
+                  <PostCard post={post} />
+                </div>
+              ))
+            }
+          </div>
+
+          <div
+            id="blog-pagination"
+            class="mt-6 flex flex-wrap items-center justify-center gap-2"
+          >
+          </div>
+        </div>
+
+        <aside class="space-y-6 lg:sticky lg:top-24 lg:h-fit">
+          <div class="glass-card p-6 text-center">
+            <Image
+              src={Profile}
+              alt="Avatar"
+              width={80}
+              height={80}
+              class="mx-auto mb-4 h-20 w-20 rounded-full border border-border/80"
+            />
+            <h3 class="font-heading text-2xl font-bold">Lucas Alonso</h3>
+            <p class="mt-2 text-sm text-text-secondary">
+              Desarrollador web full-stack. Escribo sobre ingeniería, sistemas y
+              producto.
+            </p>
+          </div>
+
+          <div class="glass-card p-6">
+            <h3 class="mb-4 font-heading text-2xl font-bold">Categorías</h3>
+            <div class="space-y-2 text-sm">
+              {
+                categories.map((cat) => {
+                  const count = allPosts.filter((p) =>
+                    p.data.categories.includes(cat),
+                  ).length;
+                  return (
+                    <div class="flex items-center justify-between rounded-lg px-2 py-1">
+                      <span class="text-text-secondary">{cat}</span>
+                      <span class="rounded-full border border-border/70 bg-bg-tertiary px-2 py-0.5 text-xs">
+                        {count}
+                      </span>
+                    </div>
+                  );
+                })
+              }
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <CTA />
+</PageLayout>
+
+<script>
+  const initBlogListing = () => {
+    const filtersContainer = document.getElementById("blog-filters");
+    const searchInput = document.getElementById("blog-search");
+    const grid = document.getElementById("posts-grid");
+    const pagination = document.getElementById("blog-pagination");
+    const featuredWrap = document.getElementById("featured-post-wrap");
+
+    if (!filtersContainer || !searchInput || !grid || !pagination) return;
+    if (grid.dataset.initialized === "true") return;
+    grid.dataset.initialized = "true";
+
+    const cards = Array.from(grid.querySelectorAll("[data-title]"));
+    const pageSize = 4;
+
+    let currentFilter = "all";
+    let currentPage = 1;
+
+    const normalize = (value) => (value || "").toString().trim().toLowerCase();
+
+    const matches = (el) => {
+      const title = normalize(el.getAttribute("data-title"));
+      const categories = normalize(el.getAttribute("data-categories"));
+      const query = searchInput.value.trim().toLowerCase();
+
+      const queryMatch =
+        !query || title.includes(query) || categories.includes(query);
+      const filterMatch =
+        normalize(currentFilter) === "all" ||
+        categories
+          .split(",")
+          .map((item) => normalize(item))
+          .includes(normalize(currentFilter));
+
+      return queryMatch && filterMatch;
+    };
+
+    const setActiveFilterButton = () => {
+      filtersContainer.querySelectorAll(".blog-filter-btn").forEach((btn) => {
+        const isActive =
+          normalize(btn.getAttribute("data-filter")) ===
+          normalize(currentFilter);
+        btn.classList.toggle("bg-accent-primary", isActive);
+        btn.classList.toggle("text-white", isActive);
+        btn.classList.toggle("bg-bg-tertiary", !isActive);
+        btn.classList.toggle("text-text-secondary", !isActive);
+      });
+    };
+
+    const renderPagination = (totalPages) => {
+      pagination.innerHTML = "";
+      if (totalPages <= 1) return;
+
+      const createBtn = (label, page, isActive = false, disabled = false) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.textContent = label;
+        btn.disabled = disabled;
+        btn.className = `rounded-lg border px-3 py-2 text-sm font-medium transition ${
+          isActive
+            ? "border-accent-primary bg-accent-primary text-white"
+            : "border-border bg-bg-secondary text-text-secondary hover:text-text-primary"
+        } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`;
+        btn.addEventListener("click", () => {
+          currentPage = page;
+          render();
+        });
+        return btn;
+      };
+
+      pagination.appendChild(
+        createBtn(
+          "Anterior",
+          Math.max(1, currentPage - 1),
+          false,
+          currentPage === 1,
+        ),
+      );
+      for (let i = 1; i <= totalPages; i += 1) {
+        pagination.appendChild(createBtn(String(i), i, i === currentPage));
+      }
+      pagination.appendChild(
+        createBtn(
+          "Siguiente",
+          Math.min(totalPages, currentPage + 1),
+          false,
+          currentPage === totalPages,
+        ),
+      );
+    };
+
+    const render = () => {
+      const filtered = cards.filter((card) => matches(card));
+      const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+      if (currentPage > totalPages) currentPage = 1;
+
+      cards.forEach((card) => {
+        card.style.display = "none";
+      });
+
+      const start = (currentPage - 1) * pageSize;
+      filtered.slice(start, start + pageSize).forEach((card) => {
+        card.style.display = "";
+      });
+
+      if (featuredWrap) {
+        featuredWrap.style.display = matches(featuredWrap) ? "" : "none";
+      }
+
+      setActiveFilterButton();
+      renderPagination(totalPages);
+    };
+
+    filtersContainer.addEventListener("click", (event) => {
+      const button =
+        event.target && event.target.closest
+          ? event.target.closest(".blog-filter-btn")
+          : null;
+      if (!button) return;
+      currentFilter = button.getAttribute("data-filter") || "all";
+      currentPage = 1;
+      render();
+    });
+
+    searchInput.addEventListener("input", () => {
+      currentPage = 1;
+      render();
+    });
+
+    render();
+  };
+
+  document.addEventListener("astro:page-load", initBlogListing);
+  initBlogListing();
+</script>

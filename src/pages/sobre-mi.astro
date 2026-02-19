@@ -1,0 +1,312 @@
+---
+import { Image } from "astro:assets";
+import PageLayout from "@/layouts/PageLayout.astro";
+import SectionTitle from "@/components/ui/SectionTitle.astro";
+import Timeline from "@/components/ui/Timeline.astro";
+import Badge from "@/components/ui/Badge.astro";
+import CTA from "@/components/home/CTA.astro";
+import Photo from "@/assets/img2.webp";
+
+const experience = [
+  {
+    title: "Desarrollador Full Stack Senior",
+    company: "The Brand Industry",
+    period: "Jun. 2010 - Actualidad",
+    description:
+      "Desarrollo de más de 10 sitios web en Craft CMS. Implementé mejoras de rendimiento del 30% y optimicé procesos internos del equipo técnico.",
+  },
+  {
+    title: "Consultor Freelance",
+    company: "Independiente",
+    period: "March. 2024 — Actualidad",
+    description:
+      "Implementación de sitios y apps con foco en métricas de negocio y mantenibilidad.",
+  },
+  {
+    title: "Desarrollador Junior Full Stack",
+    company: "Finkok Sapi de CV ",
+    period: "Dic.2019 - Jun.2020",
+    description:
+      "Desarrollador Full Stack Jr en proyectos internos y externos de la empresa desarrollados con las tecnologías python y django framework.",
+  },
+];
+
+const approach = [
+  {
+    icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />',
+    title: "Calidad",
+    description:
+      "Código limpio, testeable y mantenible. Cada línea tiene un propósito.",
+  },
+  {
+    icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />',
+    title: "Comunicación",
+    description:
+      "Transparencia total en el proceso. Actualizaciones frecuentes y feedback constante.",
+  },
+  {
+    icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />',
+    title: "Aprendizaje Continuo",
+    description:
+      "Siempre explorando nuevas tecnologías y mejores prácticas del ecosistema.",
+  },
+];
+
+const techStack = [
+  {
+    category: "Frontend",
+    technologies: [
+      "Js",
+      "Vue Js",
+      "React",
+      "Next.js",
+      "Astro JS",
+      "TypeScript",
+      "Tailwind CSS",
+      "Sass",
+      "HTML/CSS",
+    ],
+  },
+  {
+    category: "Backend & APIs",
+    technologies: [
+      "Node.js",
+      "Python",
+      "PHP",
+      "Java (Basic)",
+      "MySql",
+      "Postgresql",
+      "REST APIs",
+      "GraphQL",
+    ],
+  },
+  {
+    category: "CMS",
+    technologies: ["Strapi", "Craft CMS", "Wordpress"],
+  },
+  {
+    category: "DevOps & Herramientas",
+    technologies: [
+      "Docker",
+      "Nginx",
+      "Apache",
+      "AWS",
+      "DigitalOcean",
+      "Google Cloud Platform",
+    ],
+  },
+];
+
+const education = [
+  {
+    title: "Máster Completo en Java de cero a experto 2025",
+    institution:
+      "Udemy / Andrés Guzmán - Web Developer & Traninnig Specialist TI",
+    year: "Sep. 12 2025 - Actualmente",
+  },
+  {
+    title: "React Native Expo: Aplicaciones nativas para IOS y Android",
+    institution: "Udemy / Fernando Herrera - DevTalles",
+    year: "Feb. 23 2025 - Actualmente",
+  },
+  {
+    title:
+      "Next.js: El framework de React para producción (Versión de Next.js 13+, 14+)",
+    institution: "Udemy / Fernando Herrera",
+    year: "Ago. 5 2024 - Sep. 15 2024",
+  },
+  {
+    title: "Flutter - Móvil",
+    institution: "Udemy / Fernando Herrera",
+    year: "Feb. 15 2024 - Mar. 27 2024",
+  },
+  {
+    title: "Universidad Java",
+    institution: "Udemy / Global Mentoring Ing. Ubaldo Acosta",
+    year: "Oct 2020 - Dic 2021",
+  },
+];
+---
+
+<PageLayout
+  title="Sobre Mí | lalonso.dev"
+  description="Conoce mi historia, experiencia profesional y las tecnologías con las que trabajo."
+>
+  <section class="relative pt-32 pb-0 overflow-hidden">
+    <div
+      class="absolute inset-0 bg-gradient-to-b from-accent-primary/5 to-transparent"
+    >
+    </div>
+    <div
+      class="relative section-padding pb-[3rem] container-custom text-center"
+    >
+      <h1 class="font-heading text-5xl sm:text-7xl font-bold mb-4">Sobre Mí</h1>
+      <p class="text-xl text-text-secondary max-w-2xl mx-auto">
+        La persona detrás del código — mi historia, motivación y enfoque
+        profesional.
+      </p>
+    </div>
+  </section>
+
+  <section class="section-padding pt-[2.5rem]">
+    <div class="container-custom">
+      <div class="grid lg:grid-cols-2 gap-16 items-center">
+        <div>
+          <SectionTitle
+            label="MI HISTORIA"
+            title="De la curiosidad a la profesión"
+          />
+          <div class="space-y-4 text-text-secondary leading-relaxed">
+            <p>
+              Desde pequeño sentí curiosidad por cómo funcionan las cosas. Esa
+              curiosidad me llevó al mundo de la tecnología, donde descubrí que
+              programar era como resolver puzzles infinitos — y me encantó.
+            </p>
+            <p>
+              La música también ha sido parte importante de mi vida. Me enseñó
+              disciplina, creatividad y la importancia de los detalles —
+              cualidades que aplico en cada proyecto que construyo.
+            </p>
+            <p>
+              Hoy, con más de 5 años de experiencia, mi motivación sigue siendo
+              la misma: construir cosas que funcionen bien, que sean bonitas y
+              que aporten valor real. Mi familia es mi motor principal y cada
+              proyecto es una oportunidad de crecer profesional y personalmente.
+            </p>
+          </div>
+        </div>
+        <div class="relative">
+          <div class="aspect-square rounded-2xl overflow-hidden">
+            <Image
+              src={Photo}
+              alt="Lucas Alberto"
+              width={800}
+              height={800}
+              class="w-full h-full object-cover"
+            />
+          </div>
+          <div
+            class="absolute -bottom-4 -right-4 w-32 h-32 bg-accent-primary/10 rounded-2xl -z-10"
+          >
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section-padding bg-bg-secondary">
+    <div class="container-custom">
+      <SectionTitle
+        label="MI ENFOQUE"
+        title="Principios que guían mi trabajo"
+        align="center"
+      />
+      <div class="grid md:grid-cols-3 gap-8">
+        {
+          approach.map((item) => (
+            <div class="glass-card p-8 text-center">
+              <div class="inline-flex p-3 rounded-xl bg-accent-primary/10 text-accent-primary mb-0">
+                <svg
+                  class="w-10 h-10"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  set:html={item.icon}
+                />
+              </div>
+              <h3 class="font-heading text-xl font-bold mb-3">{item.title}</h3>
+              <p class="text-text-secondary">{item.description}</p>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="section-padding">
+    <div class="container-custom max-w-3xl">
+      <SectionTitle label="EXPERIENCIA" title="Trayectoria Profesional" />
+      <Timeline items={experience} />
+    </div>
+  </section>
+
+  <section class="section-padding bg-bg-secondary">
+    <div class="container-custom">
+      <SectionTitle
+        label="TECNOLOGÍAS"
+        title="Stack Tecnológico Completo"
+        align="center"
+      />
+      <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {
+          techStack.map((group) => (
+            <div class="glass-card p-6">
+              <h3 class="font-heading text-lg font-bold mb-4">
+                {group.category}
+              </h3>
+              <div class="flex flex-wrap gap-2">
+                {group.technologies.map((tech) => (
+                  <Badge text={tech} variant="default" />
+                ))}
+              </div>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="section-padding bg-bg-secondary pt-[0rem]">
+    <div class="container-custom max-w-3xl text-center">
+      <SectionTitle label="" title="EDUCACIÓN" align="center" />
+      <p class="text-text-secondary text-lg leading-relaxed">
+        <strong> Nivel Superior </strong>
+        <br />
+        <strong> Ingeniería en informática </strong> | Ciudad Altamirano, Gro. | 2015-2019
+        Instituto Tecnológico de Ciudad Altamirano, Avenida Pungarabato Pte. S/N.
+      </p>
+    </div>
+  </section>
+
+  <section class="section-padding">
+    <div class="container-custom">
+      <SectionTitle
+        label="EDUCACIÓN"
+        title="Formación y Certificaciones"
+        align="center"
+      />
+      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {
+          education.map((item) => (
+            <div class="glass-card p-6 text-center">
+              <p class="text-sm text-accent-primary font-medium mb-2">
+                {item.year}
+              </p>
+              <h3 class="font-heading font-bold mb-1">{item.title}</h3>
+              <p class="text-sm text-text-secondary">{item.institution}</p>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="section-padding bg-bg-secondary">
+    <div class="container-custom max-w-3xl text-center">
+      <SectionTitle
+        label="MÁS ALLÁ DEL CÓDIGO"
+        title="Intereses Personales"
+        align="center"
+      />
+      <p class="text-text-secondary text-lg leading-relaxed">
+        Cuando no estoy programando, probablemente estoy practicando o
+        estudiando música, pasando tiempo con mi familia, o explorando nuevas
+        tendencias tecnológicas. Creo que las mejores ideas surgen cuando
+        combinamos diferentes perspectivas — y por eso valoro tanto la
+        diversidad de intereses.
+      </p>
+    </div>
+  </section>
+
+  <CTA />
+</PageLayout>

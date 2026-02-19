@@ -1,0 +1,61 @@
+---
+import { Image } from 'astro:assets';
+import type { CollectionEntry } from 'astro:content';
+import Badge from '@/components/ui/Badge.astro';
+
+interface Props {
+  project: CollectionEntry<"projects">;
+}
+
+const { project } = Astro.props;
+const {
+  title,
+  description,
+  cover,
+  category,
+  technologies,
+  externalProject,
+  liveUrl,
+} = project.data;
+
+const url = externalProject ? liveUrl : `/proyectos/${project.slug}`;
+---
+
+<article class="group overflow-hidden">
+  <a
+    href={url}
+    class="block overflow-hidden"
+    {...externalProject && { target: "_blank" }}
+    {...externalProject && { rel: "noopener noreferrer" }}
+  >
+    <div
+      class="relative aspect-[16/10] overflow-hidden rounded-xl border border-border"
+    >
+      <Image
+        src={cover}
+        alt={title}
+        width={1200}
+        height={750}
+        class="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+        loading="lazy"
+      />
+    </div>
+    <div class="space-y-3 p-5">
+      <div class="flex flex-wrap gap-1.5">
+        <Badge text={category} variant="accent" />
+        {
+          technologies
+            .slice(0, 1)
+            .map((tech) => <Badge text={tech} variant="default" />)
+        }
+      </div>
+
+      <h3
+        class="font-heading text-2xl font-semibold leading-tight text-text-primary"
+      >
+        {title}
+      </h3>
+      <p class="text-sm text-text-secondary">{description}</p>
+    </div>
+  </a>
+</article>

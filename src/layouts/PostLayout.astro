@@ -1,0 +1,60 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import Header from "@/components/layout/Header.astro";
+import Footer from "@/components/layout/Footer.astro";
+import PostHeader from "@/components/blog/PostHeader.astro";
+import RelatedPosts from "@/components/blog/RelatedPosts.astro";
+import CTA from "@/components/home/CTA.astro";
+import { getCollection } from "astro:content";
+
+const { frontmatter } = Astro.props;
+const currentSlug = Astro.url.pathname.split("/").filter(Boolean).pop();
+
+const allPosts = await getCollection("blog", ({ data }) => !data.draft);
+const relatedPosts = allPosts
+  .filter((post) => post.slug !== currentSlug)
+  .filter((post) =>
+    post.data.categories.some((cat: string) =>
+      frontmatter.categories.includes(cat),
+    ),
+  )
+  .slice(0, 3);
+---
+
+<BaseLayout
+  title={`${frontmatter.title} | Blog`}
+  description={frontmatter.description}
+  ogImage={frontmatter.cover}
+>
+  <Header />
+  <main class="pt-24">
+    <article class="section-padding pt-10">
+      <div class="container-custom max-w-4xl px-4 sm:px-6 lg:px-8">
+        <nav class="mb-8 text-sm text-text-secondary">
+          <a href="/blog" class="hover:text-accent-primary">Blog</a>
+          <span class="mx-2">/</span>
+          <span>Artículo</span>
+        </nav>
+
+        <PostHeader
+          title={frontmatter.title}
+          date={frontmatter.date}
+          categories={frontmatter.categories}
+          readingTime={frontmatter.readingTime}
+          cover={frontmatter.cover}
+        />
+
+        <div
+          class="prose prose-lg max-w-none prose-headings:font-heading prose-headings:text-text-primary prose-p:text-text-secondary prose-a:text-accent-primary prose-strong:text-text-primary prose-code:rounded prose-code:bg-bg-tertiary prose-code:px-1.5 prose-code:py-0.5 prose-pre:border prose-pre:border-border prose-pre:bg-bg-secondary prose-img:rounded-2xl dark:prose-invert"
+        >
+          <slot />
+        </div>
+      </div>
+    </article>
+
+    {relatedPosts.length > 0 && <RelatedPosts posts={relatedPosts} />}
+
+    <CTA />
+  </main>
+  <Footer />
+</BaseLayout>

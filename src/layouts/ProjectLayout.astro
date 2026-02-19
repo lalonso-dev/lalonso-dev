@@ -1,0 +1,227 @@
+---
+import { Image } from "astro:assets";
+import { getCollection } from "astro:content";
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import Header from "@/components/layout/Header.astro";
+import Footer from "@/components/layout/Footer.astro";
+import Badge from "@/components/ui/Badge.astro";
+import ProjectGallery from "@/components/projects/ProjectGallery.astro";
+import CTA from "@/components/home/CTA.astro";
+import Button from "@/components/ui/Button.astro";
+
+const { frontmatter } = Astro.props;
+const currentSlug = Astro.url.pathname.split("/").filter(Boolean).pop();
+
+const allProjects = (await getCollection("projects")).sort(
+  (a, b) => a.data.date.valueOf() - b.data.date.valueOf(),
+);
+const currentIndex = allProjects.findIndex((p) => p.slug === currentSlug);
+const prevProject = currentIndex > 0 ? allProjects[currentIndex - 1] : null;
+const nextProject =
+  currentIndex < allProjects.length - 1 ? allProjects[currentIndex + 1] : null;
+
+const statusLabels: Record<string, string> = {
+  live: "Live",
+  development: "En desarrollo",
+  completed: "Completado",
+};
+---
+
+<BaseLayout
+  title={`${frontmatter.title} | Proyectos`}
+  description={frontmatter.description}
+  ogImage={frontmatter.cover}
+>
+  <Header />
+  <main class="pt-20">
+    <section class="section-padding pb-10 pt-[3rem]">
+      <div class="container-custom">
+        <div class="inset-x-0 bottom-0 p-8 sm:pt-4 text-center">
+          <div class="mb-3 flex flex-wrap items-center justify-center gap-2">
+            <Badge text="PROJECT SHOWCASE" variant="accent" />
+            <Badge
+              text={statusLabels[frontmatter.status] || frontmatter.status}
+              variant={frontmatter.status === "live" ? "success" : "accent"}
+            />
+          </div>
+          <h1
+            class="mb-3 max-w-3xl font-heading text-4xl font-bold sm:text-6xl mx-auto"
+          >
+            {frontmatter.title}
+          </h1>
+          <p class="mb-6 max-w-2xl text-base sm:text-lg mx-auto">
+            {frontmatter.description}
+          </p>
+          <div class="flex flex-wrap gap-3"></div>
+        </div>
+
+        <div class="glass-card relative overflow-hidden">
+          <Image
+            src={frontmatter.cover}
+            alt={frontmatter.title}
+            width={1600}
+            height={900}
+            class="h-[320px] w-full object-cover sm:h-[650px]"
+          />
+        </div>
+      </div>
+    </section>
+
+    <section class="section-padding pt-6">
+      <div class="container-custom">
+        <div class="grid gap-8 lg:grid-cols-[1fr_300px]">
+          <div
+            class="prose prose-lg max-w-none prose-headings:font-heading prose-headings:text-text-primary prose-p:text-text-secondary prose-a:text-accent-primary prose-strong:text-text-primary prose-code:rounded prose-code:bg-bg-tertiary prose-code:px-1.5 prose-code:py-0.5 prose-pre:border prose-pre:border-border prose-pre:bg-bg-secondary dark:prose-invert"
+          >
+            <slot />
+          </div>
+
+          <aside>
+            <div class="sticky top-24 space-y-6">
+              <div class="glass-card p-5">
+                <h3 class="mb-4 font-heading text-2xl font-bold">
+                  Technology Stack
+                </h3>
+                <div class="flex flex-wrap gap-2">
+                  {
+                    frontmatter.technologies.map((tech: string) => (
+                      <Badge text={tech} variant="accent" />
+                    ))
+                  }
+                </div>
+              </div>
+
+              <div class="glass-card p-5">
+                <h3 class="mb-4 font-heading text-lg font-bold">Detalles</h3>
+                <dl class="space-y-3 text-sm">
+                  <div>
+                    <dt class="text-text-secondary">Categoría</dt>
+                    <dd class="font-semibold text-text-primary">
+                      {frontmatter.category}
+                    </dd>
+                  </div>
+                  {
+                    frontmatter.client && (
+                      <div>
+                        <dt class="text-text-secondary">Cliente</dt>
+                        <dd class="font-semibold text-text-primary">
+                          {frontmatter.client}
+                        </dd>
+                      </div>
+                    )
+                  }
+                  <div>
+                    <dt class="text-text-secondary">Links</dt>
+                    <dd class="font-semibold text-text-primary py-1">
+                      {
+                        frontmatter.liveUrl && (
+                          <Button
+                            text="Live Demo"
+                            class="w-full"
+                            href={frontmatter.liveUrl}
+                            size="md"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          />
+                        )
+                      }
+                    </dd>
+                    <dd class="font-semibold text-text-primary py-1">
+                      {
+                        frontmatter.githubUrl && (
+                          <Button
+                            text="GitHub Repo"
+                            class="w-full"
+                            rel="noopener noreferrer"
+                            href={frontmatter.githubUrl}
+                            variant="outline"
+                            target="_blank"
+                            size="md"
+                          />
+                        )
+                      }
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    {
+      frontmatter.testimonial && (
+        <section class="section-padding">
+          <div class="container-custom max-w-3xl px-4 sm:px-6 lg:px-8">
+            <h2 class="mb-6 text-center font-heading text-4xl font-bold">
+              Client Testimonial
+            </h2>
+            <div class="glass-card p-8 text-center">
+              <p class="mb-5 text-lg italic text-text-secondary">
+                "{frontmatter.testimonial.text}"
+              </p>
+              <p class="font-semibold text-text-primary">
+                {frontmatter.testimonial.author}
+              </p>
+              <p class="text-sm text-text-secondary">
+                {frontmatter.testimonial.role}
+              </p>
+            </div>
+          </div>
+        </section>
+      )
+    }
+
+    {
+      frontmatter.gallery && frontmatter.gallery.length > 0 && (
+        <ProjectGallery
+          images={frontmatter.gallery}
+          title={frontmatter.title}
+        />
+      )
+    }
+
+    <CTA />
+
+    <section class="section-padding pt-0">
+      <div class="container-custom">
+        <div
+          class="flex items-center justify-between border-t border-border/70 pt-8"
+        >
+          <div>
+            {
+              prevProject && (
+                <a
+                  href={`/proyectos/${prevProject.slug}`}
+                  class="text-sm text-text-secondary hover:text-text-primary"
+                >
+                  Anterior:{" "}
+                  <span class="font-semibold text-text-primary">
+                    {prevProject.data.title}
+                  </span>
+                </a>
+              )
+            }
+          </div>
+          <div>
+            {
+              nextProject && (
+                <a
+                  href={`/proyectos/${nextProject.slug}`}
+                  class="text-sm text-text-secondary hover:text-text-primary"
+                >
+                  Siguiente:{" "}
+                  <span class="font-semibold text-text-primary">
+                    {nextProject.data.title}
+                  </span>
+                </a>
+              )
+            }
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <Footer />
+</BaseLayout>

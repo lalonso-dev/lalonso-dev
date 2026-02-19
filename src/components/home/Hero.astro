@@ -1,0 +1,58 @@
+---
+import Button from '@/components/ui/Button.astro';
+
+const stats = [
+  { value: "50+", label: "Proyectos entregados" },
+  { value: "99%", label: "Satisfacción de clientes" },
+  { value: "5+", label: "Años de experiencia" },
+];
+---
+
+<section class="section-padding pt-28 sm:pt-32">
+  <div class="container-custom">
+    <div class="mx-auto max-w-4xl text-center">
+      <div
+        class="mb-6 inline-flex items-center gap-2 rounded-full border border-accent-primary/20 bg-accent-primary/5 px-4 py-2"
+      >
+        <span class="pulse-dot"></span>
+        <span
+          class="text-xs font-semibold uppercase tracking-[0.18em] text-accent-primary"
+        >
+          Construyendo nuevas ideas 🚀
+        </span>
+      </div>
+      <h1
+        class="mx-auto max-w-3xl font-heading text-5xl font-extrabold leading-[0.95] text-slate-900 sm:text-6xl lg:text-7xl dark:text-white"
+      >
+        Sistemas web escalables y sitios de <span class="gradient-text"
+          >alto rendimiento</span
+        >
+      </h1>
+      <p
+        class="mx-auto mt-6 max-w-2xl text-base text-text-secondary sm:text-lg"
+      >
+        Desarrollador Full Stack Senior especializado en arquitectura web
+        moderna, ingeniería de producto y optimización de rendimiento.
+      </p>
+      <div class="mt-9 flex flex-wrap justify-center gap-3">
+        <Button text="Ver proyectos" href="/proyectos" size="lg" />
+        <Button text="Contactar" href="/contacto" variant="outline" size="lg" />
+      </div>
+    </div>
+
+    <div class="mt-14 grid gap-4 sm:grid-cols-3">
+      {
+        stats.map((stat) => (
+          <div class="glass-card p-5 text-center">
+            <p class="font-heading text-3xl font-bold text-text-primary">
+              {stat.value}
+            </p>
+            <p class="mt-1 text-xs uppercase tracking-[0.16em] text-text-secondary">
+              {stat.label}
+            </p>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</section>

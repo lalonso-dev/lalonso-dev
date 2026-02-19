@@ -1,0 +1,39 @@
+---
+import { getCollection } from 'astro:content';
+import SectionTitle from '@/components/ui/SectionTitle.astro';
+import ProjectCard from '@/components/projects/ProjectCard.astro';
+
+const featuredProjects = (await getCollection("projects"))
+  .filter((project) => project.data.featured)
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
+  .slice(0, 2);
+---
+
+<section class="section-padding bg-bg-primary">
+  <div class="container-custom">
+    <div class="mb-10 flex items-end justify-between">
+      <SectionTitle label="TRABAJO DESTACADO" title="Trabajos y resultados" />
+      <a
+        href="/proyectos"
+        class="hidden items-center gap-2 text-sm font-semibold text-accent-primary hover:underline sm:inline-flex"
+      >
+        Ver Proyectos
+        <svg
+          class="h-4 w-4"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          ><path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg
+        >
+      </a>
+    </div>
+
+    <div class="grid gap-8 md:grid-cols-2">
+      {featuredProjects.map((project) => <ProjectCard project={project} />)}
+    </div>
+  </div>
+</section>

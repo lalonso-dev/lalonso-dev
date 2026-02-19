@@ -1,0 +1,251 @@
+---
+import PageLayout from "@/layouts/PageLayout.astro";
+
+const contactInfo = [
+  {
+    icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />',
+    label: "Email",
+    value: "lalonso.dev@gmail.com",
+    href: "mailto:lalonso@gmail.com",
+  },
+  {
+    icon: '<path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />',
+    label: "LinkedIn",
+    value: "linkedin.com/in/lucasalbertoalonso",
+    href: "https://www.linkedin.com/in/lucasalbertoalonso/",
+  },
+  {
+    icon: '<path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />',
+    label: "GitHub",
+    value: "github.com/lalonso-dev",
+    href: "https://github.com/lalonso-dev",
+  },
+];
+
+const faqs = [
+  {
+    question: "¿Cuánto tiempo tardas en responder?",
+    answer: "Generalmente respondo en menos de 24 horas en días laborables.",
+  },
+  {
+    question: "¿Ofreces llamadas de descubrimiento?",
+    answer:
+      "Sí, ofrezco una videollamada gratuita de 30 minutos para conocer tu proyecto y darte una estimación inicial.",
+  },
+  {
+    question: "¿En qué zonas horarias trabajas?",
+    answer:
+      "Me adapto a la zona horaria de mis clientes. He trabajado con equipos en América.",
+  },
+];
+
+const projectTypes = [
+  "Sitio web corporativo",
+  "Aplicación web",
+  "E-commerce",
+  "Landing page",
+  "Rediseño web",
+  "Consultoría",
+  "Otro",
+];
+
+const budgetRanges = [
+  "Menos de $1,000 MXN",
+  "$1,000 MXN — $5,000 MXN",
+  "$5,000 MXN — $10,000 MXN",
+  "$10,000 MXN — $25,000 MXN",
+  "Más de $25,000 MXN",
+];
+---
+
+<PageLayout
+  title="Contacto | lalonso.dev"
+  description="¿Tienes un proyecto en mente? Hablemos. Completa el formulario o contáctame directamente."
+>
+  <!-- Hero -->
+  <section class="relative pt-32 pb-3 overflow-hidden">
+    <div class="relative section-padding container-custom text-center">
+      <h1 class="font-heading text-5xl sm:text-6xl font-bold mb-4">Hablemos</h1>
+      <p class="text-xl text-text-secondary max-w-2xl mx-auto">
+        ¿Tienes un proyecto en mente? Me encantaría saber más. Completa el
+        formulario o contáctame directamente.
+      </p>
+    </div>
+  </section>
+
+  <section class="section-padding pt-[0rem]">
+    <div class="container-custom">
+      <div class="grid lg:grid-cols-3 gap-12">
+        <!-- Form -->
+        <div class="lg:col-span-2">
+          <form
+            action="https://formspree.io/f/TU_FORM_ID"
+            method="POST"
+            class="space-y-6"
+          >
+            <div class="grid sm:grid-cols-2 gap-6">
+              <div>
+                <label for="name" class="block text-sm font-medium mb-2"
+                  >Nombre *</label
+                >
+                <input
+                  type="text"
+                  id="name"
+                  name="name"
+                  required
+                  class="w-full px-4 py-3 rounded-xl bg-bg-secondary border border-border text-text-primary placeholder:text-text-secondary focus:outline-none focus:border-accent-primary transition-colors"
+                  placeholder="Tu nombre"
+                />
+              </div>
+              <div>
+                <label for="email" class="block text-sm font-medium mb-2"
+                  >Email *</label
+                >
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  required
+                  class="w-full px-4 py-3 rounded-xl bg-bg-secondary border border-border text-text-primary placeholder:text-text-secondary focus:outline-none focus:border-accent-primary transition-colors"
+                  placeholder="tu@email.com"
+                />
+              </div>
+            </div>
+
+            <div class="grid sm:grid-cols-2 gap-6">
+              <div>
+                <label for="project-type" class="block text-sm font-medium mb-2"
+                  >Tipo de proyecto</label
+                >
+                <select
+                  id="project-type"
+                  name="project-type"
+                  class="w-full px-4 py-3 rounded-xl bg-bg-secondary border border-border text-text-primary focus:outline-none focus:border-accent-primary transition-colors"
+                >
+                  <option value="">Selecciona una opción</option>
+                  {
+                    projectTypes.map((type) => (
+                      <option value={type}>{type}</option>
+                    ))
+                  }
+                </select>
+              </div>
+              <div>
+                <label for="budget" class="block text-sm font-medium mb-2"
+                  >Presupuesto aproximado</label
+                >
+                <select
+                  id="budget"
+                  name="budget"
+                  class="w-full px-4 py-3 rounded-xl bg-bg-secondary border border-border text-text-primary focus:outline-none focus:border-accent-primary transition-colors"
+                >
+                  <option value="">Selecciona un rango</option>
+                  {
+                    budgetRanges.map((range) => (
+                      <option value={range}>{range}</option>
+                    ))
+                  }
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label for="message" class="block text-sm font-medium mb-2"
+                >Mensaje *</label
+              >
+              <textarea
+                id="message"
+                name="message"
+                required
+                rows="6"
+                class="w-full px-4 py-3 rounded-xl bg-bg-secondary border border-border text-text-primary placeholder:text-text-secondary focus:outline-none focus:border-accent-primary transition-colors resize-none"
+                placeholder="Cuéntame sobre tu proyecto..."></textarea>
+            </div>
+
+            <button
+              type="submit"
+              class="inline-flex items-center gap-2 px-8 py-4 bg-accent-primary text-white rounded-lg font-medium text-lg hover:opacity-90 transition-all"
+            >
+              Enviar Mensaje
+              <svg
+                class="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                ><path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg
+              >
+            </button>
+          </form>
+        </div>
+
+        <!-- Sidebar -->
+        <aside>
+          <div class="sticky top-24 space-y-8">
+            <!-- Contact Info -->
+            <div class="glass-card p-6">
+              <h3 class="font-heading font-bold mb-6">Contacto directo</h3>
+              <div class="space-y-4">
+                {
+                  contactInfo.map((info) => (
+                    <a
+                      href={info.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="flex items-center gap-3 text-text-secondary hover:text-accent-primary transition-colors group"
+                    >
+                      <div class="p-2 rounded-lg bg-bg-tertiary group-hover:bg-accent-primary/10 transition-colors">
+                        <svg
+                          class="w-5 h-5"
+                          fill="currentColor"
+                          viewBox="0 0 24 24"
+                          set:html={info.icon}
+                        />
+                      </div>
+                      <div>
+                        <p class="text-xs text-text-secondary">{info.label}</p>
+                        <p class="text-sm font-medium text-text-primary">
+                          {info.value}
+                        </p>
+                      </div>
+                    </a>
+                  ))
+                }
+              </div>
+            </div>
+
+            <!-- Availability -->
+            <div class="glass-card p-6">
+              <div class="flex items-center gap-2 mb-3">
+                <span class="pulse-dot"></span>
+                <h3 class="font-heading font-bold">Disponible</h3>
+              </div>
+              <p class="text-sm text-text-secondary">
+                Actualmente disponible para nuevos proyectos. Horario de
+                respuesta: Lunes a Viernes, 9:00 — 18:00 (GMT-6).
+              </p>
+            </div>
+
+            <!-- FAQ -->
+            <div class="glass-card p-6">
+              <h3 class="font-heading font-bold mb-4">Preguntas rápidas</h3>
+              <div class="space-y-4">
+                {
+                  faqs.map((faq) => (
+                    <div>
+                      <p class="text-sm font-medium mb-1">{faq.question}</p>
+                      <p class="text-sm text-text-secondary">{faq.answer}</p>
+                    </div>
+                  ))
+                }
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </section>
+</PageLayout>

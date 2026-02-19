@@ -1,0 +1,40 @@
+---
+interface TimelineItem {
+  title: string;
+  company: string;
+  companyUrl?: string;
+  period: string;
+  description: string;
+}
+
+interface Props {
+  items: TimelineItem[];
+}
+
+const { items } = Astro.props;
+---
+
+<div class="relative">
+  <div class="absolute bottom-0 left-3 top-1 w-px bg-border"></div>
+
+  <div class="space-y-7">
+    {items.map((item) => (
+      <div class="relative pl-10">
+        <div class="absolute left-0.5 top-1.5 h-5 w-5 rounded-full border border-border bg-bg-secondary p-1">
+          <div class="h-full w-full rounded-full bg-accent-primary"></div>
+        </div>
+
+        <h3 class="font-heading text-lg font-semibold leading-tight">{item.title}</h3>
+        {item.companyUrl ? (
+          <a href={item.companyUrl} target="_blank" rel="noopener noreferrer" class="text-sm font-semibold text-accent-primary hover:underline">
+            {item.company}
+          </a>
+        ) : (
+          <p class="text-sm font-semibold text-accent-primary">{item.company}</p>
+        )}
+        <p class="mt-0.5 text-xs text-text-secondary">{item.period}</p>
+        <p class="mt-2 text-sm text-text-secondary">{item.description}</p>
+      </div>
+    ))}
+  </div>
+</div>

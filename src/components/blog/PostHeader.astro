@@ -1,0 +1,60 @@
+---
+import { Image } from "astro:assets";
+import Profile from "@/assets/avatar3.webp";
+import Badge from "@/components/ui/Badge.astro";
+import { formatDate } from "@/utils/formatDate";
+
+interface Props {
+  title: string;
+  date: Date;
+  categories: string[];
+  readingTime?: number;
+  cover?: string;
+}
+
+const { title, date, categories, readingTime, cover } = Astro.props;
+---
+
+<header class="mb-12">
+  <div
+    class="mb-4 flex flex-wrap items-center gap-3 text-sm text-text-secondary"
+  >
+    <time datetime={date.toISOString()}>{formatDate(date)}</time>
+    {readingTime && <span>{readingTime} min lectura</span>}
+    <!-- <span>1.2K vistas</span> -->
+  </div>
+
+  <div class="mb-5 flex flex-wrap gap-2">
+    {categories.map((cat) => <Badge text={cat} variant="accent" />)}
+  </div>
+
+  <h1 class="mb-7 font-heading text-4xl font-bold leading-tight sm:text-6xl">
+    {title}
+  </h1>
+
+  <div class="mb-8 flex items-center gap-3">
+    <Image
+      src={Profile}
+      alt="Avatar"
+      width={48}
+      height={48}
+      class="h-12 w-12 rounded-full border border-border/70 object-cover"
+    />
+    <div>
+      <p class="text-sm font-semibold">Lucas Alonso</p>
+      <p class="text-xs text-text-secondary">Desarrollador Web Full-Stack</p>
+    </div>
+  </div>
+
+  {
+    cover && (
+      <Image
+        src={cover}
+        alt={title}
+        width={1400}
+        height={788}
+        class="w-full rounded-2xl border border-border/80 object-cover shadow-xl"
+      />
+    )
+  }
+</header>

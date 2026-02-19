@@ -1,0 +1,66 @@
+---
+import SectionTitle from '@/components/ui/SectionTitle.astro';
+import Timeline from '@/components/ui/Timeline.astro';
+
+const experience = [
+  {
+    title: "Desarrollador Full Stack Senior",
+    company: "The Brand Industry",
+    period: "Jun. 2010 - Actualidad",
+    description:
+      "Desarrollo de más de 10 sitios web en Craft CMS. Implementé mejoras de rendimiento del 30% y optimicé procesos internos del equipo técnico.",
+  },
+  {
+    title: "Consultor Freelance",
+    company: "Independiente",
+    period: "March. 2024 — Actualidad",
+    description:
+      "Implementación de sitios y apps con foco en métricas de negocio y mantenibilidad.",
+  },
+  {
+    title: "Desarrollador Junior Full Stack",
+    company: "Finkok Sapi de CV ",
+    period: "Dic.2019 - Jun.2020",
+    description:
+      "Desarrollador Full Stack Jr en proyectos internos y externos de la empresa desarrollados con las tecnologías python y django framework.",
+  },
+];
+
+const stats = [
+  { value: "50+", label: "Proyectos entregados" },
+  { value: "99%", label: "Satisfacción de clientes" },
+];
+---
+
+<section class="section-padding bg-[#eef1f4] dark:bg-bg-secondary/30">
+  <div class="container-custom">
+    <div class="grid gap-8 lg:grid-cols-2 lg:gap-10">
+      <div>
+        <SectionTitle
+          label="SOBRE MÍ & EXPERIENCIA"
+          title="Buscando la excelencia, con más de 5 años de experiencia."
+          description="Me enfoco en construir software que no solo funcione, sino que escale. Mi enfoque combina profundidad técnica con visión de negocio."
+        />
+
+        <div class="mt-6 grid grid-cols-2 gap-6">
+          {
+            stats.map((stat) => (
+              <div>
+                <p class="font-heading text-4xl font-bold leading-none text-text-primary">
+                  {stat.value}
+                </p>
+                <p class="mt-1 text-[11px] uppercase tracking-[0.16em] text-text-secondary">
+                  {stat.label}
+                </p>
+              </div>
+            ))
+          }
+        </div>
+      </div>
+
+      <div class="glass-card p-6 sm:p-7">
+        <Timeline items={experience} />
+      </div>
+    </div>
+  </div>
+</section>

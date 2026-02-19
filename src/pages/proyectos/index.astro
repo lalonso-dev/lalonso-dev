@@ -1,0 +1,211 @@
+---
+import { getCollection } from "astro:content";
+import PageLayout from "@/layouts/PageLayout.astro";
+import ProjectCard from "@/components/projects/ProjectCard.astro";
+import ProjectFilters from "@/components/projects/ProjectFilters.astro";
+import CTA from "@/components/home/CTA.astro";
+
+const allProjects = (await getCollection("projects")).sort(
+  (a, b) => b.data.date.valueOf() - a.data.date.valueOf(),
+);
+const categories = [...new Set(allProjects.map((p) => p.data.category))];
+
+const stats = [
+  { value: `50+`, label: "Proyectos completados" },
+  { value: "99%", label: "Clientes satisfechos" },
+  { value: "+5", label: "Años de experiencia" },
+  { value: "100%", label: "Tasa de entrega" },
+];
+---
+
+<PageLayout
+  title="Proyectos | lalonso.dev"
+  description="Explora mi portafolio de proyectos web: aplicaciones, e-commerce, sitios corporativos y más."
+>
+  <section class="relative overflow-hidden pb-3 pt-32">
+    <div
+      class="absolute inset-0 bg-gradient-to-b from-accent-primary/5 to-transparent"
+    >
+    </div>
+    <div class="relative section-padding pb-[3rem] container-custom">
+      <h1 class="mb-4 font-heading text-5xl font-bold sm:text-6xl">
+        Proyectos
+      </h1>
+      <p class="max-w-2xl text-xl text-text-secondary">
+        Una selección de proyectos en los que he trabajado, desde aplicaciones
+        web hasta plataformas e-commerce y sitios corporativos.
+      </p>
+    </div>
+  </section>
+
+  <section class="section-padding pt-[0rem]">
+    <div class="container-custom">
+      <ProjectFilters categories={categories} />
+
+      <div class="grid gap-8 md:grid-cols-2 lg:grid-cols-3" id="projects-grid">
+        {allProjects.map((project) => <ProjectCard project={project} />)}
+      </div>
+
+      {
+        allProjects.length > 6 && (
+          <div
+            id="projects-pagination"
+            class="mt-10 flex flex-wrap items-center justify-center gap-2"
+          />
+        )
+      }
+    </div>
+  </section>
+
+  <section class="section-padding pt-0">
+    <div class="container-custom">
+      <div class="glass-card p-8 text-center">
+        <p class="text-text-secondary">
+          <span class="font-medium text-text-primary">Nota:</span> Algunos proyectos
+          no pueden mostrarse públicamente por acuerdos de confidencialidad con los
+          clientes. Si deseas conocer más sobre mi trabajo, no dudes en <a
+            href="/contacto"
+            class="text-accent-primary hover:underline">contactarme</a
+          >.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section-padding bg-bg-secondary">
+    <div class="container-custom">
+      <div class="grid grid-cols-2 gap-8 text-center lg:grid-cols-4">
+        {
+          stats.map((stat) => (
+            <div>
+              <p class="mb-2 font-heading text-4xl font-bold text-accent-primary">
+                {stat.value}
+              </p>
+              <p class="text-text-secondary">{stat.label}</p>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <CTA />
+</PageLayout>
+
+<script>
+  const initProjectsListing = () => {
+    const filtersContainer = document.getElementById("project-filters");
+    const grid = document.getElementById("projects-grid");
+    const pagination = document.getElementById("projects-pagination");
+
+    if (!filtersContainer || !grid || !pagination) return;
+    if (grid.dataset.initialized === "true") return;
+    grid.dataset.initialized = "true";
+
+    const cards = Array.from(grid.querySelectorAll("[data-category]"));
+    const pageSize = 6;
+    let currentFilter = "all";
+    let currentPage = 1;
+
+    const normalize = (value) => (value || "").toString().trim().toLowerCase();
+
+    const getFilteredCards = () => {
+      return cards.filter((card) => {
+        const category = normalize(card.getAttribute("data-category"));
+        return (
+          normalize(currentFilter) === "all" ||
+          category === normalize(currentFilter)
+        );
+      });
+    };
+
+    const setActiveFilterButton = () => {
+      filtersContainer.querySelectorAll(".filter-btn").forEach((btn) => {
+        const isActive =
+          normalize(btn.getAttribute("data-filter")) ===
+          normalize(currentFilter);
+        btn.classList.toggle("bg-accent-primary", isActive);
+        btn.classList.toggle("text-white", isActive);
+        btn.classList.toggle("bg-bg-secondary", !isActive);
+        btn.classList.toggle("text-text-secondary", !isActive);
+      });
+    };
+
+    const renderPagination = (totalPages) => {
+      pagination.innerHTML = "";
+      if (totalPages <= 1) return;
+
+      const createBtn = (label, page, isActive = false, disabled = false) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.textContent = label;
+        btn.disabled = disabled;
+        btn.className = `rounded-lg border px-3 py-2 text-sm font-medium transition ${
+          isActive
+            ? "border-accent-primary bg-accent-primary text-white"
+            : "border-border bg-bg-secondary text-text-secondary hover:text-text-primary"
+        } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`;
+        btn.addEventListener("click", () => {
+          currentPage = page;
+          render();
+        });
+        return btn;
+      };
+
+      pagination.appendChild(
+        createBtn(
+          "Anterior",
+          Math.max(1, currentPage - 1),
+          false,
+          currentPage === 1,
+        ),
+      );
+      for (let i = 1; i <= totalPages; i += 1) {
+        pagination.appendChild(createBtn(String(i), i, i === currentPage));
+      }
+      pagination.appendChild(
+        createBtn(
+          "Siguiente",
+          Math.min(totalPages, currentPage + 1),
+          false,
+          currentPage === totalPages,
+        ),
+      );
+    };
+
+    const render = () => {
+      const filtered = getFilteredCards();
+      const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+      if (currentPage > totalPages) currentPage = 1;
+
+      cards.forEach((card) => {
+        card.style.display = "none";
+      });
+
+      const start = (currentPage - 1) * pageSize;
+      const paginated = filtered.slice(start, start + pageSize);
+      paginated.forEach((card) => {
+        card.style.display = "";
+      });
+
+      setActiveFilterButton();
+      renderPagination(totalPages);
+    };
+
+    filtersContainer.addEventListener("click", (event) => {
+      const button =
+        event.target && event.target.closest
+          ? event.target.closest(".filter-btn")
+          : null;
+      if (!button) return;
+      currentFilter = button.getAttribute("data-filter") || "all";
+      currentPage = 1;
+      render();
+    });
+
+    render();
+  };
+
+  document.addEventListener("astro:page-load", initProjectsListing);
+  initProjectsListing();
+</script>

@@ -1,0 +1,130 @@
+---
+import SectionTitle from '@/components/ui/SectionTitle.astro';
+import Badge from '@/components/ui/Badge.astro';
+
+const skillCategories = [
+  {
+    title: "Frontend",
+    icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />',
+    technologies: [
+      "Js",
+      "Vue Js",
+      "React",
+      "Next.js",
+      "Astro JS",
+      "TypeScript",
+      "Tailwind CSS",
+      "Sass",
+      "HTML/CSS",
+    ],
+    featured: false,
+    description: "",
+  },
+  {
+    title: "Backend & APIs",
+    icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2" />',
+    technologies: [
+      "Node.js",
+      "Python",
+      "PHP",
+      "Java (Basic)",
+      "MySql",
+      "Postgresql",
+      "REST APIs",
+      "GraphQL",
+    ],
+    description: "",
+    featured: false,
+  },
+  {
+    title: "CMS",
+    icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2" />',
+    technologies: ["Strapi", "Craft CMS", "Wordpress"],
+    description: "",
+    featured: false,
+  },
+  {
+    title: "DevOps & Herramientas",
+    icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999" />',
+    technologies: [
+      "Docker",
+      "Nginx",
+      "Apache",
+      "AWS",
+      "DigitalOcean",
+      "Google Cloud Platform",
+    ],
+    description: "",
+    featured: false,
+  },
+  {
+    title: "Optimización de rendimiento",
+    icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />',
+    technologies: [],
+    description:
+      "Optimización de Core Web Vitals y edge-caching para una velocidad máxima.",
+    featured: true,
+  },
+];
+---
+
+<section
+  class="section-padding pt-[1.5rem] bg-[#f0f2f5] dark:bg-bg-secondary/40"
+>
+  <div class="container-custom">
+    <SectionTitle
+      label="HABILIDADES CLAVE"
+      title="Stack Tecnológico"
+      align="center"
+    />
+
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
+      {
+        skillCategories.map((category, idx) => (
+          <div
+            class={`p-5 transition ${idx < 2 ? "lg:col-span-3" : "lg:col-span-2"} ${category.featured ? "rounded-xl bg-accent-primary text-white" : "glass-card"}`}
+          >
+            <div class="mb-4 flex items-center gap-2">
+              <div
+                class={`rounded-md p-1.5 ${category.featured ? "bg-white/15 text-white" : "bg-bg-tertiary text-accent-primary"}`}
+              >
+                <svg
+                  class="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  set:html={category.icon}
+                />
+              </div>
+              <h3
+                class={`font-heading text-lg font-semibold ${category.featured ? "text-white" : "text-text-primary"}`}
+              >
+                {category.title}
+              </h3>
+            </div>
+
+            {category.description && (
+              <p class="m-0">
+                <small>
+                  Optimización de Core Web Vitals y edge-caching para una
+                  velocidad máxima.
+                </small>
+              </p>
+            )}
+
+            {category.technologies.length > 0 && (
+              <div class="flex flex-wrap gap-1.5">
+                {category.technologies.map((tech) => (
+                  <Badge
+                    text={tech}
+                    variant={category.featured ? "outline" : "default"}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</section>

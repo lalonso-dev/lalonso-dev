@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" fill="none">
+  <rect width="1200" height="630" fill="#020617"/>
+  <circle cx="176" cy="114" r="220" fill="#1D4ED8" fill-opacity="0.3"/>
+  <circle cx="1128" cy="560" r="280" fill="#0EA5E9" fill-opacity="0.22"/>
+  <rect x="86" y="88" width="1028" height="454" rx="24" fill="#0B1120" stroke="#1E293B"/>
+  <text x="146" y="286" fill="#F8FAFC" font-size="88" font-family="Inter, sans-serif" font-weight="800">lalonso.dev</text>
+  <text x="146" y="360" fill="#93C5FD" font-size="38" font-family="Inter, sans-serif">Desarrollador Full-Stack • Portafolio</text>
+</svg>

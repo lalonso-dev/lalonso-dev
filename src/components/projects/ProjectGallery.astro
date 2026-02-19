@@ -1,0 +1,134 @@
+---
+import { Image } from "astro:assets";
+
+interface Props {
+  images: string[];
+  title: string;
+}
+
+const { images, title } = Astro.props;
+---
+
+<section class="section-padding bg-bg-secondary">
+  <div class="container-custom">
+    <h2 class="font-heading text-3xl sm:text-4xl font-bold text-center mb-12">
+      Galería del Proyecto
+    </h2>
+
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6" id="gallery-grid">
+      {
+        images.map((image, index) => (
+          <button
+            type="button"
+            class="group relative overflow-hidden rounded-xl aspect-video glass-card cursor-pointer"
+            data-image={image}
+            data-alt={`${title} - Imagen ${index + 1}`}
+          >
+            <Image
+              src={image}
+              alt={`${title} - Imagen ${index + 1}`}
+              width={1200}
+              height={675}
+              class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              loading="lazy"
+            />
+            <div class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300" />
+            <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              <svg
+                class="w-10 h-10 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M15 10l4.55-4.55m0 0L15 1m4.55 4.45H9m6 8.1L19.55 18m0 0L15 22.55m4.55-4.55H9"
+                />
+              </svg>
+            </div>
+          </button>
+        ))
+      }
+    </div>
+  </div>
+
+  <div
+    id="lightbox"
+    class="fixed inset-0 bg-black/95 z-[9999] hidden items-center justify-center p-4"
+  >
+    <button
+      id="lightbox-close"
+      class="absolute top-6 right-6 text-white/70 hover:text-white transition-colors"
+      aria-label="Cerrar"
+    >
+      <svg
+        class="w-10 h-10"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+        ><path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M6 18L18 6M6 6l12 12"></path></svg
+      >
+    </button>
+    <img
+      id="lightbox-img"
+      src=""
+      alt=""
+      class="max-w-full max-h-[90vh] object-contain rounded-lg"
+    />
+  </div>
+</section>
+
+<script>
+  const galleryButtons = document.querySelectorAll(
+    "#gallery-grid button[data-image]",
+  );
+  const lightbox = document.getElementById("lightbox");
+  const lightboxImg = document.getElementById(
+    "lightbox-img",
+  ) as HTMLImageElement;
+  const closeBtn = document.getElementById("lightbox-close");
+
+  galleryButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const image = (btn as HTMLElement).dataset.image;
+      const alt = (btn as HTMLElement).dataset.alt;
+      if (image && lightbox && lightboxImg) {
+        lightboxImg.src = image;
+        lightboxImg.alt = alt || "";
+        lightbox.classList.remove("hidden");
+        lightbox.classList.add("flex");
+        document.body.style.overflow = "hidden";
+      }
+    });
+  });
+
+  const closeLightbox = () => {
+    if (lightbox && lightboxImg) {
+      lightbox.classList.add("hidden");
+      lightbox.classList.remove("flex");
+      lightboxImg.src = "";
+      document.body.style.overflow = "";
+    }
+  };
+
+  closeBtn?.addEventListener("click", closeLightbox);
+  lightbox?.addEventListener("click", (e) => {
+    if (e.target === lightbox) closeLightbox();
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (
+      e.key === "Escape" &&
+      lightbox &&
+      !lightbox.classList.contains("hidden")
+    ) {
+      closeLightbox();
+    }
+  });
+</script>
