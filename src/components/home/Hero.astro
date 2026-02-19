@@ -13,6 +13,7 @@ const stats = [
     <div class="mx-auto max-w-4xl text-center">
       <div
         class="mb-6 inline-flex items-center gap-2 rounded-full border border-accent-primary/20 bg-accent-primary/5 px-4 py-2"
+        data-reveal
       >
         <span class="pulse-dot"></span>
         <span
@@ -23,6 +24,8 @@ const stats = [
       </div>
       <h1
         class="mx-auto max-w-3xl font-heading text-5xl font-extrabold leading-[0.95] text-slate-900 sm:text-6xl lg:text-7xl dark:text-white"
+        data-reveal
+        data-reveal-delay="80"
       >
         Sistemas web escalables y sitios de <span class="gradient-text"
           >alto rendimiento</span
@@ -30,11 +33,13 @@ const stats = [
       </h1>
       <p
         class="mx-auto mt-6 max-w-2xl text-base text-text-secondary sm:text-lg"
+        data-reveal
+        data-reveal-delay="140"
       >
         Desarrollador Full Stack Senior especializado en arquitectura web
         moderna, ingeniería de producto y optimización de rendimiento.
       </p>
-      <div class="mt-9 flex flex-wrap justify-center gap-3">
+      <div class="mt-9 flex flex-wrap justify-center gap-3" data-reveal data-reveal-delay="200">
         <Button text="Ver proyectos" href="/proyectos" size="lg" />
         <Button text="Contactar" href="/contacto" variant="outline" size="lg" />
       </div>
@@ -42,8 +47,8 @@ const stats = [
 
     <div class="mt-14 grid gap-4 sm:grid-cols-3">
       {
-        stats.map((stat) => (
-          <div class="glass-card p-5 text-center">
+        stats.map((stat, index) => (
+          <div class="glass-card p-5 text-center" data-reveal data-reveal-delay={String(160 + index * 70)}>
             <p class="font-heading text-3xl font-bold text-text-primary">
               {stat.value}
             </p>

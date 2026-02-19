@@ -12,7 +12,7 @@ const { post } = Astro.props;
 const { title, description, date, cover, categories, readingTime } = post.data;
 ---
 
-<article class="glass-card group overflow-hidden transition duration-300 hover:-translate-y-1 hover:border-accent-primary/40">
+<article class="glass-card group overflow-hidden transition duration-300 hover:-translate-y-1 hover:border-accent-primary/40" data-reveal>
   {cover && (
     <a href={`/blog/${post.slug}`} class="relative block aspect-video overflow-hidden">
       <Image src={cover} alt={title} width={1200} height={675} class="h-full w-full object-cover transition duration-500 group-hover:scale-105" loading="lazy" />

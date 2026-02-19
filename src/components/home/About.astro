@@ -44,8 +44,8 @@ const stats = [
 
         <div class="mt-6 grid grid-cols-2 gap-6">
           {
-            stats.map((stat) => (
-              <div>
+            stats.map((stat, index) => (
+              <div data-reveal data-reveal-delay={String(80 + index * 80)}>
                 <p class="font-heading text-4xl font-bold leading-none text-text-primary">
                   {stat.value}
                 </p>
@@ -58,7 +58,7 @@ const stats = [
         </div>
       </div>
 
-      <div class="glass-card p-6 sm:p-7">
+      <div class="glass-card p-6 sm:p-7" data-reveal data-reveal-delay="160">
         <Timeline items={experience} />
       </div>
     </div>

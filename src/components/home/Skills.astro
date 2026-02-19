@@ -83,6 +83,8 @@ const skillCategories = [
         skillCategories.map((category, idx) => (
           <div
             class={`p-5 transition ${idx < 2 ? "lg:col-span-3" : "lg:col-span-2"} ${category.featured ? "rounded-xl bg-accent-primary text-white" : "glass-card"}`}
+            data-reveal
+            data-reveal-delay={String(idx * 70)}
           >
             <div class="mb-4 flex items-center gap-2">
               <div

@@ -10,7 +10,7 @@ const { label, title, description, align = 'left' } = Astro.props;
 const isCenter = align === 'center';
 ---
 
-<div class={`mb-10 ${isCenter ? 'text-center' : 'text-left'}`}>
+<div class={`mb-10 ${isCenter ? 'text-center' : 'text-left'}`} data-reveal>
   {label && (
     <p class="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-accent-primary">{label}</p>
   )}

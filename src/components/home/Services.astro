@@ -32,8 +32,8 @@ const services = [
 
     <div class="grid gap-4 md:grid-cols-3">
       {
-        services.map((service) => (
-          <div class="glass-card p-6">
+        services.map((service, index) => (
+          <div class="glass-card p-6" data-reveal data-reveal-delay={String(index * 80)}>
             <div class="mb-4 inline-flex rounded-md bg-bg-tertiary p-2 text-accent-primary">
               <svg
                 class="h-5 w-5"
