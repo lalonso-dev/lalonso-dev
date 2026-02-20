@@ -2,7 +2,7 @@
 title: "Custom Anti-spam en Freeform con Craft CMS 4"
 description: "Aprende a crear una capa de anti-spam robusta en Freeform usando el Module por defecto de Craft CMS 4, lista negra de dominios gratuitos, rate limiting por IP y la API gratuita de StopForumSpam."
 date: 2026-01-18
-cover: "/images/blog/twig-craft.webp"
+cover: "/images/blog/spam.webp"
 categories: ["Tutoriales"]
 readingTime: 7
 featured: false
