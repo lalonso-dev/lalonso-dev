@@ -2,39 +2,59 @@
 interface Props {
   text: string;
   href?: string;
-  variant?: 'primary' | 'outline' | 'ghost';
-  size?: 'sm' | 'md' | 'lg';
+  variant?: "primary" | "outline" | "ghost";
+  size?: "sm" | "md" | "lg";
   target?: string;
   class?: string;
+  [key: string]: any;
 }
 
-const { text, href, variant = 'primary', size = 'md', target, class: className = '' } = Astro.props;
+const {
+  text,
+  href,
+  variant = "primary",
+  size = "md",
+  target,
+  class: className = "",
+  ...rest
+} = Astro.props;
 
-const baseClasses = 'inline-flex items-center justify-center gap-2 rounded-lg font-semibold tracking-tight transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/50';
+const baseClasses =
+  "inline-flex items-center justify-center gap-2 rounded-lg font-semibold tracking-tight transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/50";
 
 const variants: Record<string, string> = {
-  primary: 'bg-accent-primary text-white shadow-[0_10px_20px_-12px_rgba(47,67,255,0.9)] hover:brightness-110',
-  outline: 'border border-border bg-transparent text-text-primary hover:border-accent-primary/50 hover:[background-color:rgb(47_67_255_/_0.08)]',
-  ghost: 'text-text-secondary hover:bg-bg-tertiary hover:text-text-primary',
+  primary:
+    "bg-accent-primary text-white shadow-[0_10px_20px_-12px_rgba(47,67,255,0.9)] hover:brightness-110",
+  outline:
+    "border border-border bg-transparent text-text-primary hover:border-accent-primary/50 hover:[background-color:rgb(47_67_255_/_0.08)]",
+  ghost: "text-text-secondary hover:bg-bg-tertiary hover:text-text-primary",
 };
 
 const sizes: Record<string, string> = {
-  sm: 'px-4 py-2 text-sm',
-  md: 'px-5 py-2.5 text-sm',
-  lg: 'px-6 py-3 text-sm sm:text-base',
+  sm: "px-4 py-2 text-sm",
+  md: "px-5 py-2.5 text-sm",
+  lg: "px-6 py-3 text-sm sm:text-base",
 };
 
 const classes = `${baseClasses} ${variants[variant]} ${sizes[size]} ${className}`;
 ---
 
-{href ? (
-  <a href={href} class={classes} target={target} rel={target === '_blank' ? 'noopener noreferrer' : undefined}>
-    {text}
-    <slot />
-  </a>
-) : (
-  <button class={classes}>
-    {text}
-    <slot />
-  </button>
-)}
+{
+  href ? (
+    <a
+      href={href}
+      class={classes}
+      target={target}
+      rel={target === "_blank" ? "noopener noreferrer" : undefined}
+      {...rest}
+    >
+      {text}
+      <slot />
+    </a>
+  ) : (
+    <button class={classes} {...rest}>
+      {text}
+      <slot />
+    </button>
+  )
+}

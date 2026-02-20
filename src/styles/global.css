@@ -12,6 +12,12 @@
     --text-primary: #0f172a;
     --text-secondary: #4b5563;
     --border: #d8deea;
+
+    --code-bg: #f6f8fa;
+    --code-border: #d0d7de;
+    --code-fg: #24292f;
+    --code-inline-bg: #eef1f6;
+    --code-inline-fg: #1f2937;
   }
 
   .dark {
@@ -23,6 +29,12 @@
     --text-primary: #f8fafc;
     --text-secondary: #94a3b8;
     --border: #2a3959;
+
+    --code-bg: #272822;
+    --code-border: #3f4439;
+    --code-fg: #f8f8f2;
+    --code-inline-bg: #1f2435;
+    --code-inline-fg: #f9fafb;
   }
 
   html {
@@ -86,7 +98,7 @@
     }
   }
 
-  (min-width: 1400px) {
+  @media (min-width: 1400px) {
     .container-custom {
       max-width: 1320px;
     }
@@ -160,8 +172,63 @@
 .body__project {
   h2 {
     margin: 0.9rem 0rem !important;
+
     &:first-child {
       margin-top: 0rem !important;
     }
   }
+}
+
+/* Code blocks + inline code */
+.prose :where(pre):not(:where([class~="not-prose"] *)),
+.body__project pre,
+pre.astro-code {
+  border: 1px solid var(--code-border);
+  border-radius: 0.75rem;
+  padding: 1rem 1.1rem !important;
+  overflow-x: auto;
+}
+
+.prose :where(code):not(:where(pre code, [class~="not-prose"] *)),
+.body__project :not(pre) > code {
+  background: var(--code-inline-bg);
+  color: var(--code-inline-fg);
+  border-radius: 0.4rem;
+  padding: 0.1rem 0.4rem;
+}
+
+/* Dual Shiki theme via html.dark toggle */
+html:not(.dark) .shiki,
+html:not(.dark) pre.astro-code {
+  background-color: unset !important;
+}
+
+html:not(.dark) .shiki span,
+html:not(.dark) pre.astro-code span {
+  background-color: transparent !important;
+}
+
+html.dark .shiki,
+html.dark .shiki span,
+html.dark pre.astro-code,
+html.dark pre.astro-code span {
+  color: var(--shiki-dark) !important;
+}
+
+html.dark .shiki,
+html.dark pre.astro-code {
+  background-color: var(--shiki-dark-bg) !important;
+}
+
+html.dark .shiki span,
+html.dark pre.astro-code span {
+  background-color: transparent !important;
+}
+
+/* Remove per-line highlight background */
+pre.astro-code .line,
+pre.astro-code span.line,
+.shiki .line,
+.shiki span.line {
+  background: transparent !important;
 }

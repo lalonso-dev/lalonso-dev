@@ -1,0 +1,29 @@
+---
+import PageLayout from '@/layouts/PageLayout.astro';
+import Button from '@/components/ui/Button.astro';
+---
+
+<PageLayout title="Mensaje enviado | lalonso.dev" description="Tu mensaje fue enviado correctamente.">
+  <section class="section-padding pt-32 sm:pt-36">
+    <div class="container-custom">
+      <div class="mx-auto max-w-2xl rounded-2xl border border-border bg-bg-secondary p-8 text-center sm:p-12" data-reveal>
+        <div class="mx-auto mb-5 inline-flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/12 text-emerald-500 dark:text-emerald-400">
+          <svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+
+        <p class="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-accent-primary">Formulario enviado</p>
+        <h1 class="font-heading text-4xl font-extrabold leading-tight text-text-primary sm:text-5xl">Gracias, recibí tu mensaje</h1>
+        <p class="mx-auto mt-4 max-w-xl text-text-secondary">
+          Te responderé lo antes posible. Mientras tanto, puedes revisar mis proyectos o volver al inicio.
+        </p>
+
+        <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <Button text="Ver proyectos" href="/proyectos" size="lg" />
+          <Button text="Volver al inicio" href="/" variant="outline" size="lg" />
+        </div>
+      </div>
+    </div>
+  </section>
+</PageLayout>

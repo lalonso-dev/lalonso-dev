@@ -5,10 +5,34 @@ import Footer from "@/components/layout/Footer.astro";
 import PostHeader from "@/components/blog/PostHeader.astro";
 import RelatedPosts from "@/components/blog/RelatedPosts.astro";
 import CTA from "@/components/home/CTA.astro";
+import Button from "@/components/ui/Button.astro";
 import { getCollection } from "astro:content";
 
 const { frontmatter } = Astro.props;
 const currentSlug = Astro.url.pathname.split("/").filter(Boolean).pop();
+const postUrl = Astro.url.href;
+const encodedUrl = encodeURIComponent(postUrl);
+const shareMessage = `Mira la información que he encontrado, te lo recomiendo:: ${frontmatter.title}`;
+const encodedShareMessage = encodeURIComponent(shareMessage);
+
+const shareLinks = [
+  {
+    label: "Facebook",
+    href: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
+  },
+  {
+    label: "X",
+    href: `https://x.com/intent/tweet?url=${encodedUrl}&text=${encodedShareMessage}`,
+  },
+  {
+    label: "LinkedIn",
+    href: `https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(`${shareMessage} ${postUrl}`)}`,
+  },
+  {
+    label: "Whatsapp",
+    href: `https://wa.me/?text=${encodeURIComponent(`${shareMessage} ${postUrl}`)}`,
+  },
+];
 
 const allPosts = await getCollection("blog", ({ data }) => !data.draft);
 const relatedPosts = allPosts
@@ -28,9 +52,9 @@ const relatedPosts = allPosts
 >
   <Header />
   <main class="pt-24">
-    <article class="section-padding pt-10">
+    <article class="section-padding pt-10 pb-[1.5rem]">
       <div class="container-custom max-w-4xl px-4 sm:px-6 lg:px-8">
-        <nav class="mb-8 text-sm text-text-secondary">
+        <nav class="mb-3 text-sm text-text-secondary">
           <a href="/blog" class="hover:text-accent-primary">Blog</a>
           <span class="mx-2">/</span>
           <span>Artículo</span>
@@ -45,9 +69,52 @@ const relatedPosts = allPosts
         />
 
         <div
-          class="prose prose-lg max-w-none prose-headings:font-heading prose-headings:text-text-primary prose-p:text-text-secondary prose-a:text-accent-primary prose-strong:text-text-primary prose-code:rounded prose-code:bg-bg-tertiary prose-code:px-1.5 prose-code:py-0.5 prose-pre:border prose-pre:border-border prose-pre:bg-bg-secondary prose-img:rounded-2xl dark:prose-invert"
+          class="body__project prose prose-lg max-w-none prose-headings:font-heading prose-headings:text-text-primary prose-p:text-text-secondary prose-a:text-accent-primary prose-strong:text-text-primary prose-code:rounded prose-code:bg-bg-tertiary prose-code:px-1.5 prose-code:py-0.5 prose-pre:border prose-pre:border-border prose-pre:bg-bg-secondary prose-img:rounded-2xl dark:prose-invert [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_pre_code]:rounded-none"
         >
           <slot />
+        </div>
+
+        {
+          frontmatter.tags && (
+            <div class="mb-3 mt-5 pt-3">
+              <p class="my-0 text-base">Tags:</p>
+              <ul class="mb-0 mt-3 flex flex-wrap items-center justify-start gap-2">
+                {frontmatter.tags.map((item: string) => (
+                  <li class="px-3 py-2 inline-flex items-center justify-center gap-2 rounded-lg font-semibold tracking-tight transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/50 border border-border bg-black text-white  px-4 py-2 text-sm ">
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )
+        }
+
+        <div
+          class="mb-0 pb-[2rem] flex flex-wrap items-center justify-end gap-3 pt-[2rem]"
+          data-reveal
+        >
+          <span class="text-base font-medium text-text-primary">Compartir:</span
+          >
+          {
+            shareLinks.map((item) => (
+              <Button
+                text={item.label}
+                target="_blank"
+                aria-label={`Compartir en ${item.label}`}
+                href={item.href}
+                size="sm"
+                variant="outline"
+              />
+            ))
+          }
+          <Button
+            id="copy-link-btn"
+            data-url={postUrl}
+            aria-label="Copiar enlace del post"
+            text="Copiar link"
+            size="sm"
+            variant="outline"
+          />
         </div>
       </div>
     </article>
@@ -57,4 +124,25 @@ const relatedPosts = allPosts
     <CTA />
   </main>
   <Footer />
+
+  <script is:inline>
+    const copyBtn = document.getElementById("copy-link-btn");
+    copyBtn?.addEventListener("click", async () => {
+      const url = copyBtn.getAttribute("data-url");
+      if (!url) return;
+      try {
+        await navigator.clipboard.writeText(url);
+        const original = copyBtn.textContent;
+        copyBtn.textContent = "Copiado";
+        setTimeout(() => {
+          copyBtn.textContent = original || "Copiar link";
+        }, 1500);
+      } catch {
+        copyBtn.textContent = "No se pudo copiar";
+        setTimeout(() => {
+          copyBtn.textContent = "Copiar link";
+        }, 1500);
+      }
+    });
+  </script>
 </BaseLayout>
