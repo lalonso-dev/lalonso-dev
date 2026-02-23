@@ -232,3 +232,14 @@ pre.astro-code span.line,
 .shiki span.line {
   background: transparent !important;
 }
+
+/*Code*/
+.prose :where(code):not(:where(pre code, [class~="not-prose"] *)),
+.body__project :not(pre) > code {
+  background: var(--code-inline-bg);
+  color: var(--code-inline-fg);
+  border-radius: 0.4rem;
+  padding: 0.1rem 0.4rem;
+  word-break: break-all; /* agrega esto */
+  overflow-wrap: break-word; /* y esto */
+}

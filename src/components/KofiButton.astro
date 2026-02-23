@@ -1,0 +1,24 @@
+---
+interface Props {
+  compact?: boolean;
+  label?: string;
+  class?: string;
+}
+
+const {
+  compact = false,
+  label = "Un café = más </Code>",
+  class: className = "",
+} = Astro.props;
+---
+
+<a
+  href="https://ko-fi.com/lalonsodev"
+  target="_blank"
+  rel="noopener noreferrer"
+  class={`inline-flex items-center gap-2 rounded-lg border border-[#FF5E5B]/45 px-3 py-2 text-sm font-semibold text-text-primary transition hover:border-[#FF5E5B]/70 hover:bg-[#FF5E5B]/10 ${compact ? "text-xs px-2.5 py-1.5" : ""} ${className}`}
+  aria-label="Apoyar en Ko-fi"
+>
+  <span class="text-[#FF5E5B]">☕</span>
+  <span>{label}</span>
+</a>

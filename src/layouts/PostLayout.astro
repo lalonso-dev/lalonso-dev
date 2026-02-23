@@ -6,6 +6,7 @@ import PostHeader from "@/components/blog/PostHeader.astro";
 import RelatedPosts from "@/components/blog/RelatedPosts.astro";
 import CTA from "@/components/home/CTA.astro";
 import Button from "@/components/ui/Button.astro";
+import KofiButton from "@/components/KofiButton.astro";
 import { getCollection } from "astro:content";
 
 const { frontmatter } = Astro.props;
@@ -116,6 +117,17 @@ const relatedPosts = allPosts
             variant="outline"
           />
         </div>
+
+        <section
+          class="mt-5 mb-4 rounded-2xl border border-border bg-bg-secondary/40 p-5 sm:p-6"
+        >
+          <p class="text-sm text-text-secondary">
+            ¿Te fue útil este artículo? Puedes apoyar mi trabajo
+          </p>
+          <div class="mt-3">
+            <KofiButton />
+          </div>
+        </section>
       </div>
     </article>
 
