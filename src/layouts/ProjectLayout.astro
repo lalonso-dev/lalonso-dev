@@ -25,12 +25,28 @@ const statusLabels: Record<string, string> = {
   development: "En desarrollo",
   completed: "Completado",
 };
+
+const projectUrl = Astro.url.href;
+const projectJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "CreativeWork",
+  name: frontmatter.title,
+  description: frontmatter.description,
+  image: [new URL(frontmatter.cover ?? "/images/og-image.svg", Astro.site ?? Astro.url.origin).toString()],
+  datePublished: new Date(frontmatter.date).toISOString(),
+  author: {
+    "@type": "Person",
+    name: "Lucas Alonso",
+  },
+  url: projectUrl,
+};
 ---
 
 <BaseLayout
   title={`${frontmatter.title} | Proyectos`}
   description={frontmatter.description}
-  ogImage={frontmatter.cover}
+  ogImage={frontmatter.cover ?? "/images/og-image.svg"}
+  jsonLd={projectJsonLd}
 >
   <Header />
   <main class="pt-20">
