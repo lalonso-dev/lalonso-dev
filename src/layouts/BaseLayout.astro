@@ -39,7 +39,11 @@ const robotsContent = noindex ? "noindex,nofollow" : "index,follow";
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content={robotsContent} />
     <meta name="description" content={description} />
-    {keywords.length > 0 && <meta name="keywords" content={keywords.join(", ")} />}
+    {
+      keywords.length > 0 && (
+        <meta name="keywords" content={keywords.join(", ")} />
+      )
+    }
     <meta name="author" content={author} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
@@ -48,8 +52,16 @@ const robotsContent = noindex ? "noindex,nofollow" : "index,follow";
     <meta property="og:site_name" content="lalonso.dev" />
     <meta property="og:type" content={ogType} />
     <meta property="og:locale" content="es_ES" />
-    {publishedTime && <meta property="article:published_time" content={publishedTime} />}
-    {modifiedTime && <meta property="article:modified_time" content={modifiedTime} />}
+    {
+      publishedTime && (
+        <meta property="article:published_time" content={publishedTime} />
+      )
+    }
+    {
+      modifiedTime && (
+        <meta property="article:modified_time" content={modifiedTime} />
+      )
+    }
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImageURL} />
@@ -125,6 +137,19 @@ const robotsContent = noindex ? "noindex,nofollow" : "index,follow";
 
       document.addEventListener("astro:page-load", initRevealAnimations);
       initRevealAnimations();
+    </script>
+
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-ZSESSSD2XZ"
+    ></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
+
+      gtag("config", "G-ZSESSSD2XZ");
     </script>
   </body>
 </html>
