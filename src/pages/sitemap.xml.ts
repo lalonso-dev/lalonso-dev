@@ -29,11 +29,11 @@ export const GET: APIRoute = async ({ site }) => {
     })),
     ...posts.map((post) => ({
       loc: new URL(`/blog/${post.slug}`, siteUrl).toString(),
-      lastmod: toIsoDate(post.data.date),
+      lastmod: toIsoDate(post.data.updatedAt ?? post.data.date),
     })),
     ...projects.map((project) => ({
       loc: new URL(`/proyectos/${project.slug}`, siteUrl).toString(),
-      lastmod: toIsoDate(project.data.date),
+      lastmod: toIsoDate(project.data.updatedAt ?? project.data.date),
     })),
   ];
 

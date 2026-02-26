@@ -11,6 +11,9 @@ interface Props {
   publishedTime?: string;
   modifiedTime?: string;
   author?: string;
+  twitterSite?: string;
+  articleSection?: string;
+  articleTags?: string[];
   jsonLd?: Record<string, unknown> | Array<Record<string, unknown>>;
 }
 
@@ -24,6 +27,9 @@ const {
   publishedTime,
   modifiedTime,
   author = "Lucas Alonso",
+  twitterSite = "@lalonsodev",
+  articleSection,
+  articleTags = [],
   jsonLd,
 } = Astro.props;
 const siteOrigin = Astro.site ?? new URL(Astro.url.origin);
@@ -66,7 +72,14 @@ const robotsContent = noindex ? "noindex,nofollow" : "index,follow";
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImageURL} />
     <meta name="twitter:url" content={canonicalURL.toString()} />
+    <meta name="twitter:site" content={twitterSite} />
     <meta name="twitter:card" content="summary_large_image" />
+    {ogType === "article" && <meta property="article:author" content={author} />}
+    {ogType === "article" && articleSection && <meta property="article:section" content={articleSection} />}
+    {
+      ogType === "article" &&
+        articleTags.map((tag) => <meta property="article:tag" content={tag} />)
+    }
     <link rel="canonical" href={canonicalURL} />
     {
       jsonLd && (

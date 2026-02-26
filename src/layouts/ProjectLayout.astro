@@ -27,13 +27,46 @@ const statusLabels: Record<string, string> = {
 };
 
 const projectUrl = Astro.url.href;
-const projectJsonLd = {
+const projectCategory = (frontmatter.category ?? "").toLowerCase();
+const isSoftwareProject = /(app|aplicaci[oó]n|saas|software|sistema)/i.test(
+  projectCategory,
+);
+
+const projectJsonLd = isSoftwareProject
+  ? {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      name: frontmatter.title,
+      description: frontmatter.description,
+      image: [
+        new URL(
+          frontmatter.cover ?? "/images/og-image.svg",
+          Astro.site ?? Astro.url.origin,
+        ).toString(),
+      ],
+      applicationCategory: frontmatter.category,
+      operatingSystem: "Web",
+      datePublished: new Date(frontmatter.date).toISOString(),
+      dateModified: new Date(frontmatter.updatedAt ?? frontmatter.date).toISOString(),
+      author: {
+        "@type": "Person",
+        name: "Lucas Alonso",
+      },
+      url: projectUrl,
+    }
+  : {
   "@context": "https://schema.org",
-  "@type": "CreativeWork",
+  "@type": "WebSite",
   name: frontmatter.title,
   description: frontmatter.description,
-  image: [new URL(frontmatter.cover ?? "/images/og-image.svg", Astro.site ?? Astro.url.origin).toString()],
+  image: [
+    new URL(
+      frontmatter.cover ?? "/images/og-image.svg",
+      Astro.site ?? Astro.url.origin,
+    ).toString(),
+  ],
   datePublished: new Date(frontmatter.date).toISOString(),
+  dateModified: new Date(frontmatter.updatedAt ?? frontmatter.date).toISOString(),
   author: {
     "@type": "Person",
     name: "Lucas Alonso",

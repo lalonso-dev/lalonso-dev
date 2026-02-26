@@ -46,6 +46,10 @@ const relatedPosts = allPosts
   )
   .slice(0, 3);
 
+const publishedISO = new Date(frontmatter.date).toISOString();
+const modifiedISO = new Date(frontmatter.updatedAt ?? frontmatter.date).toISOString();
+const articleTags = [...(frontmatter.categories ?? []), ...(frontmatter.tags ?? [])];
+
 const articleJsonLd = {
   "@context": "https://schema.org",
   "@type": "BlogPosting",
@@ -57,8 +61,8 @@ const articleJsonLd = {
       Astro.site ?? Astro.url.origin,
     ).toString(),
   ],
-  datePublished: new Date(frontmatter.date).toISOString(),
-  dateModified: new Date(frontmatter.date).toISOString(),
+  datePublished: publishedISO,
+  dateModified: modifiedISO,
   author: {
     "@type": "Person",
     name: "Lucas Alonso",
@@ -75,8 +79,10 @@ const articleJsonLd = {
   description={frontmatter.description}
   ogImage={frontmatter.cover ?? "/images/og-image.svg"}
   ogType="article"
-  publishedTime={new Date(frontmatter.date).toISOString()}
-  modifiedTime={new Date(frontmatter.date).toISOString()}
+  publishedTime={publishedISO}
+  modifiedTime={modifiedISO}
+  articleSection={frontmatter.categories?.[0]}
+  articleTags={articleTags}
   jsonLd={articleJsonLd}
 >
   <Header />
