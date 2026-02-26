@@ -5,6 +5,7 @@ import Profile from "@/assets/avatar3.webp";
 import PageLayout from "@/layouts/PageLayout.astro";
 import PostCard from "@/components/blog/PostCard.astro";
 import CategoryFilter from "@/components/blog/CategoryFilter.astro";
+import NewsletterForm from "@/components/blog/NewsletterForm.astro";
 import CTA from "@/components/home/CTA.astro";
 import { getCollection } from "astro:content";
 
@@ -134,6 +135,8 @@ const otherPosts = allPosts.slice(1);
               }
             </div>
           </div>
+
+          <NewsletterForm source="blog-listado" />
         </aside>
       </div>
     </div>

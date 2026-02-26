@@ -1,0 +1,55 @@
+---
+interface Props {
+  title?: string;
+  description?: string;
+  source?: string;
+  class?: string;
+}
+
+const {
+  title = "Suscríbete al newsletter",
+  description = "Recibe nuevos artículos, guías y recursos prácticos de desarrollo web.",
+  source = "blog",
+  class: className = "",
+} = Astro.props;
+const newsletterRedirect = `https://lalonso.dev/newsletter-success?source=${encodeURIComponent(source)}`;
+---
+
+<section class={`rounded-2xl border border-border bg-bg-secondary p-5 sm:p-6 ${className}`}>
+  <h3 class="font-heading text-xl font-bold text-text-primary">{title}</h3>
+  <p class="mt-2 text-sm text-text-secondary">{description}</p>
+
+  <form
+    action="https://api.web3forms.com/submit"
+    method="POST"
+    class="mt-4 space-y-3"
+  >
+    <input
+      type="hidden"
+      name="access_key"
+      value="ba44e75b-21e7-4993-88d3-a2e79719fc9e"
+    />
+    <input type="hidden" name="subject" value={`Nuevo suscriptor newsletter (${source})`} />
+    <input type="hidden" name="from_name" value="Newsletter lalonso.dev" />
+    <input type="hidden" name="source" value={source} />
+    <input type="hidden" name="redirect" value={newsletterRedirect} />
+    <input type="checkbox" name="botcheck" class="hidden" tabindex="-1" autocomplete="off" />
+
+    <label for={`newsletter-email-${source}`} class="sr-only">Correo electrónico</label>
+    <input
+      id={`newsletter-email-${source}`}
+      type="email"
+      name="email"
+      required
+      placeholder="tu@email.com"
+      class="w-full rounded-xl border border-border bg-bg-tertiary px-4 py-3 text-sm text-text-primary placeholder:text-text-secondary focus:border-accent-primary focus:outline-none"
+    />
+
+    <button
+      type="submit"
+      class="inline-flex w-full items-center justify-center rounded-xl border border-accent-primary/40 bg-accent-primary/10 px-4 py-2.5 text-sm font-semibold text-text-primary transition hover:border-accent-primary hover:bg-accent-primary/20"
+    >
+      Quiero suscribirme
+    </button>
+  </form>
+</section>

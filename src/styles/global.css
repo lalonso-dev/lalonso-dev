@@ -179,6 +179,24 @@
   }
 }
 
+/* Markdown tables: keep mobile layout stable */
+.prose :where(table):not(:where([class~="not-prose"] *)),
+.body__project table {
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-collapse: collapse;
+}
+
+.prose :where(th, td):not(:where([class~="not-prose"] *)),
+.body__project th,
+.body__project td {
+  white-space: nowrap;
+  overflow-wrap: anywhere;
+}
+
 /* Code blocks + inline code */
 .prose :where(pre):not(:where([class~="not-prose"] *)),
 .body__project pre,

@@ -4,6 +4,7 @@ import Header from "@/components/layout/Header.astro";
 import Footer from "@/components/layout/Footer.astro";
 import PostHeader from "@/components/blog/PostHeader.astro";
 import RelatedPosts from "@/components/blog/RelatedPosts.astro";
+import NewsletterForm from "@/components/blog/NewsletterForm.astro";
 import CTA from "@/components/home/CTA.astro";
 import Button from "@/components/ui/Button.astro";
 import KofiButton from "@/components/KofiButton.astro";
@@ -50,7 +51,12 @@ const articleJsonLd = {
   "@type": "BlogPosting",
   headline: frontmatter.title,
   description: frontmatter.description,
-  image: [new URL(frontmatter.cover ?? "/images/og-image.svg", Astro.site ?? Astro.url.origin).toString()],
+  image: [
+    new URL(
+      frontmatter.cover ?? "/images/og-image.svg",
+      Astro.site ?? Astro.url.origin,
+    ).toString(),
+  ],
   datePublished: new Date(frontmatter.date).toISOString(),
   dateModified: new Date(frontmatter.date).toISOString(),
   author: {
@@ -154,6 +160,16 @@ const articleJsonLd = {
     </article>
 
     {relatedPosts.length > 0 && <RelatedPosts posts={relatedPosts} />}
+
+    <section class="section-padding pb-0 pt-[4rem]">
+      <div class="container-custom max-w-4xl px-4 sm:px-6 lg:px-8">
+        <NewsletterForm
+          source="blog-single"
+          title="¿Te gustó este artículo?"
+          description="Suscríbete y te aviso cuando publique nuevas guías y tutoriales."
+        />
+      </div>
+    </section>
 
     <CTA />
   </main>

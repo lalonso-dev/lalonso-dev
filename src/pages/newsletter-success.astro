@@ -1,0 +1,46 @@
+---
+import PageLayout from "@/layouts/PageLayout.astro";
+import Button from "@/components/ui/Button.astro";
+---
+
+<PageLayout
+  title="Suscripción confirmada | lalonso.dev"
+  description="Tu suscripción al newsletter fue confirmada correctamente."
+>
+  <section class="section-padding pt-32 sm:pt-36">
+    <div class="container-custom">
+      <div
+        class="mx-auto max-w-2xl rounded-2xl border border-border bg-bg-secondary p-8 text-center sm:p-12"
+        data-reveal
+      >
+        <div
+          class="mx-auto mb-5 inline-flex h-14 w-14 items-center justify-center rounded-full bg-accent-primary/15 text-accent-primary"
+        >
+          <svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M5 13l4 4L19 7"
+            ></path>
+          </svg>
+        </div>
+
+        <p class="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-accent-primary">
+          Newsletter
+        </p>
+        <h1 class="font-heading text-4xl font-extrabold leading-tight text-text-primary sm:text-5xl">
+          ¡Gracias por suscribirte!
+        </h1>
+        <p class="mx-auto mt-4 max-w-xl text-text-secondary">
+          Te avisaré cuando publique nuevos artículos, tutoriales y recursos prácticos.
+        </p>
+
+        <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <Button text="Ver blog" href="/blog" size="lg" />
+          <Button text="Volver al inicio" href="/" variant="outline" size="lg" />
+        </div>
+      </div>
+    </div>
+  </section>
+</PageLayout>
