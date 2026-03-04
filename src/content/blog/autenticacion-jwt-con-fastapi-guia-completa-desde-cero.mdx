@@ -1,0 +1,613 @@
+---
+title: "Autenticación JWT con FastAPI: Guía completa desde cero"
+description: "Aprende a implementar autenticación segura con JWT y OAuth2 en FastAPI. Registro de usuarios, login, rutas protegidas, refresh tokens y buenas prácticas de seguridad para producción."
+date: 2026-03-04
+cover: "/images/blog/fastapi-jwt-auth.webp"
+categories: ["Tutoriales", "Backend"]
+readingTime: 12
+featured: false
+draft: false
+tags: ["python", "fastapi", "jwt", "oauth2", "backend", "seguridad", "api"]
+---
+
+## Por qué FastAPI + JWT es una combinación ganadora
+
+Si estás construyendo una API con Python en 2026, <a href="https://fastapi.tiangolo.com" target="_blank" rel="noopener noreferrer">FastAPI</a> es difícilmente superable: tipado estático, validación automática con Pydantic, documentación Swagger incluida y rendimiento comparable a Node.js. Pero una API sin autenticación es una API expuesta.
+
+En este tutorial vas a construir un sistema de autenticación completo usando **JWT (JSON Web Tokens)** con el flujo **OAuth2 Password**, que es el estándar recomendado por la documentación oficial de FastAPI. Al final tendrás:
+
+- Registro de usuarios con contraseñas hasheadas con **Argon2**
+- Login que devuelve un **access token** y un **refresh token**
+- Rutas protegidas con dependencias de FastAPI
+- Expiración de tokens y renovación con refresh token
+- Buenas prácticas de seguridad listas para producción
+
+---
+
+## Estructura del proyecto
+
+Antes de escribir código, esta es la estructura que vamos a construir:
+
+```
+fastapi-jwt/
+├── app/
+│   ├── __init__.py
+│   ├── main.py
+│   ├── core/
+│   │   ├── __init__.py
+│   │   ├── config.py        # Variables de entorno y settings
+│   │   └── security.py      # Hashing y JWT
+│   ├── models/
+│   │   ├── __init__.py
+│   │   └── user.py          # Modelos Pydantic
+│   ├── routers/
+│   │   ├── __init__.py
+│   │   ├── auth.py          # Endpoints de login y registro
+│   │   └── users.py         # Endpoints protegidos
+│   └── dependencies.py      # Dependencias reutilizables
+├── .env
+└── requirements.txt
+```
+
+---
+
+## Paso 1: Instalación de dependencias
+
+```bash
+# Crear entorno virtual
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+
+# Instalar dependencias
+pip install fastapi uvicorn[standard] python-jose[cryptography] pwdlib[argon2] python-multipart python-dotenv pydantic-settings
+```
+
+El archivo `requirements.txt`:
+
+```txt
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+python-jose[cryptography]>=3.3.0
+pwdlib[argon2]>=0.2.0
+python-multipart>=0.0.9
+python-dotenv>=1.0.0
+pydantic-settings>=2.0.0
+```
+
+> **¿Por qué `pwdlib` con Argon2?** <a href="https://fastapi.tiangolo.com/tutorial/security/oauth2-jwt/" target="_blank" rel="noopener noreferrer">La documentación oficial de FastAPI</a> recomienda `pwdlib` con el algoritmo Argon2 como el estándar actual para hashear contraseñas, ya que es resistente a ataques de GPU y fue el ganador de la Password Hashing Competition.
+
+---
+
+## Paso 2: Configuración y variables de entorno
+
+```python
+# app/core/config.py
+import secrets
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+class Settings(BaseSettings):
+    # App
+    PROJECT_NAME: str = "FastAPI JWT Auth"
+    API_V1_STR: str = "/api/v1"
+
+    # JWT
+    SECRET_KEY: str = secrets.token_urlsafe(32)
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+
+    model_config = SettingsConfigDict(env_file=".env")
+
+settings = Settings()
+```
+
+Crea el archivo `.env` en la raíz del proyecto:
+
+```bash
+# .env
+# Genera tu propia clave con: openssl rand -hex 32
+SECRET_KEY=tu_clave_secreta_super_larga_y_aleatoria_aqui
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+REFRESH_TOKEN_EXPIRE_DAYS=7
+```
+
+> **Importante:** Nunca subas el archivo `.env` a tu repositorio. Agrégalo al `.gitignore` de inmediato.
+
+---
+
+## Paso 3: Seguridad — hashing y JWT
+
+```python
+# app/core/security.py
+from datetime import datetime, timedelta, timezone
+from typing import Any
+from jose import jwt, JWTError
+from pwdlib import PasswordHash
+from app.core.config import settings
+
+# Instancia de PasswordHash con Argon2 (algoritmo recomendado en 2026)
+password_hash = PasswordHash.recommended()
+
+
+def hash_password(password: str) -> str:
+    """Hashea una contraseña con Argon2."""
+    return password_hash.hash(password)
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verifica si una contraseña coincide con su hash."""
+    return password_hash.check(plain_password, hashed_password)
+
+
+def create_token(data: dict[str, Any], expires_delta: timedelta) -> str:
+    """Crea un JWT firmado con una fecha de expiración."""
+    payload = data.copy()
+    expire = datetime.now(timezone.utc) + expires_delta
+    payload.update({"exp": expire})
+    return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+
+def create_access_token(subject: str) -> str:
+    """Crea un access token con expiración corta."""
+    return create_token(
+        data={"sub": subject, "type": "access"},
+        expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
+    )
+
+
+def create_refresh_token(subject: str) -> str:
+    """Crea un refresh token con expiración larga."""
+    return create_token(
+        data={"sub": subject, "type": "refresh"},
+        expires_delta=timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
+    )
+
+
+def decode_token(token: str) -> dict[str, Any]:
+    """Decodifica y valida un JWT. Lanza JWTError si es inválido."""
+    return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+```
+
+---
+
+## Paso 4: Modelos Pydantic
+
+```python
+# app/models/user.py
+from pydantic import BaseModel, EmailStr, field_validator
+
+
+class UserBase(BaseModel):
+    username: str
+    email: EmailStr
+
+
+class UserCreate(UserBase):
+    password: str
+
+    @field_validator("password")
+    @classmethod
+    def password_strength(cls, v: str) -> str:
+        if len(v) < 8:
+            raise ValueError("La contraseña debe tener al menos 8 caracteres")
+        return v
+
+
+class UserResponse(UserBase):
+    id: int
+    is_active: bool = True
+
+    model_config = {"from_attributes": True}
+
+
+class Token(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+
+
+class TokenRefresh(BaseModel):
+    refresh_token: str
+```
+
+---
+
+## Paso 5: Base de datos simulada
+
+Para mantener el tutorial enfocado en la autenticación, usamos un diccionario en memoria. En producción reemplazarías esto con SQLAlchemy + PostgreSQL o cualquier otro ORM.
+
+```python
+# app/database.py
+from app.core.security import hash_password
+
+# Simulación de base de datos en memoria
+# En producción: usar SQLAlchemy, Tortoise ORM, etc.
+fake_users_db: dict[str, dict] = {
+    "admin": {
+        "id": 1,
+        "username": "admin",
+        "email": "admin@example.com",
+        "hashed_password": hash_password("admin1234"),
+        "is_active": True,
+    }
+}
+
+def get_user(username: str) -> dict | None:
+    return fake_users_db.get(username)
+
+def create_user(username: str, email: str, hashed_password: str) -> dict:
+    user_id = len(fake_users_db) + 1
+    user = {
+        "id": user_id,
+        "username": username,
+        "email": email,
+        "hashed_password": hashed_password,
+        "is_active": True,
+    }
+    fake_users_db[username] = user
+    return user
+```
+
+---
+
+## Paso 6: Dependencias reutilizables
+
+Aquí está el corazón del sistema: la dependencia que protege cualquier ruta con una sola línea.
+
+```python
+# app/dependencies.py
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+from jose import JWTError
+from app.core.security import decode_token
+from app.database import get_user
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+
+
+async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
+    """
+    Dependencia que valida el JWT y retorna el usuario actual.
+    Úsala en cualquier ruta que requiera autenticación.
+    """
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Token inválido o expirado",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+    try:
+        payload = decode_token(token)
+
+        # Verificar que es un access token, no un refresh token
+        if payload.get("type") != "access":
+            raise credentials_exception
+
+        username: str = payload.get("sub")
+        if username is None:
+            raise credentials_exception
+
+    except JWTError:
+        raise credentials_exception
+
+    user = get_user(username)
+    if user is None:
+        raise credentials_exception
+
+    return user
+
+
+async def get_current_active_user(
+    current_user: dict = Depends(get_current_user),
+) -> dict:
+    """Verifica que el usuario esté activo."""
+    if not current_user.get("is_active"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Usuario inactivo"
+        )
+    return current_user
+```
+
+---
+
+## Paso 7: Router de autenticación
+
+```python
+# app/routers/auth.py
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
+from jose import JWTError
+from app.core.security import (
+    verify_password,
+    hash_password,
+    create_access_token,
+    create_refresh_token,
+    decode_token,
+)
+from app.database import get_user, create_user
+from app.models.user import Token, TokenRefresh, UserCreate, UserResponse
+
+router = APIRouter(prefix="/auth", tags=["Autenticación"])
+
+
+@router.post("/register", response_model=UserResponse, status_code=201)
+async def register(user_data: UserCreate):
+    """Registra un nuevo usuario."""
+    # Verificar si el usuario ya existe
+    if get_user(user_data.username):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El nombre de usuario ya está en uso",
+        )
+
+    hashed_pw = hash_password(user_data.password)
+    user = create_user(user_data.username, user_data.email, hashed_pw)
+    return user
+
+
+@router.post("/login", response_model=Token)
+async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+    """
+    Autentica al usuario y devuelve access + refresh token.
+    Usa el flujo OAuth2 Password (application/x-www-form-urlencoded).
+    """
+    user = get_user(form_data.username)
+
+    if not user or not verify_password(form_data.password, user["hashed_password"]):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Usuario o contraseña incorrectos",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    return Token(
+        access_token=create_access_token(user["username"]),
+        refresh_token=create_refresh_token(user["username"]),
+    )
+
+
+@router.post("/refresh", response_model=Token)
+async def refresh_token(body: TokenRefresh):
+    """
+    Renueva el access token usando un refresh token válido.
+    """
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Refresh token inválido o expirado",
+    )
+
+    try:
+        payload = decode_token(body.refresh_token)
+
+        # Verificar que es un refresh token
+        if payload.get("type") != "refresh":
+            raise credentials_exception
+
+        username: str = payload.get("sub")
+        if not username or not get_user(username):
+            raise credentials_exception
+
+    except JWTError:
+        raise credentials_exception
+
+    return Token(
+        access_token=create_access_token(username),
+        refresh_token=create_refresh_token(username),
+    )
+```
+
+---
+
+## Paso 8: Rutas protegidas
+
+```python
+# app/routers/users.py
+from fastapi import APIRouter, Depends
+from app.dependencies import get_current_active_user
+from app.models.user import UserResponse
+
+router = APIRouter(prefix="/users", tags=["Usuarios"])
+
+
+@router.get("/me", response_model=UserResponse)
+async def get_me(current_user: dict = Depends(get_current_active_user)):
+    """
+    Retorna la información del usuario autenticado.
+    Requiere un access token válido en el header Authorization.
+    """
+    return current_user
+
+
+@router.get("/dashboard")
+async def dashboard(current_user: dict = Depends(get_current_active_user)):
+    """Ejemplo de ruta protegida con datos del usuario."""
+    return {
+        "message": f"Bienvenido, {current_user['username']}!",
+        "email": current_user["email"],
+        "permisos": ["leer", "escribir"],
+    }
+```
+
+---
+
+## Paso 9: Punto de entrada principal
+
+```python
+# app/main.py
+from fastapi import FastAPI
+from app.core.config import settings
+from app.routers import auth, users
+
+app = FastAPI(
+    title=settings.PROJECT_NAME,
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
+)
+
+# Registrar routers
+app.include_router(auth.router, prefix=settings.API_V1_STR)
+app.include_router(users.router, prefix=settings.API_V1_STR)
+
+
+@app.get("/")
+async def root():
+    return {"message": "API funcionando", "docs": "/docs"}
+```
+
+---
+
+## Ejecutar el servidor
+
+```bash
+uvicorn app.main:app --reload
+```
+
+Abre <a href="http://localhost:8000/docs" target="_blank" rel="noopener noreferrer">http://localhost:8000/docs</a> y verás la documentación Swagger interactiva con todos los endpoints listos para probar.
+
+---
+
+## Probar los endpoints con curl
+
+```bash
+# 1. Registrar un usuario
+curl -X POST http://localhost:8000/api/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"username": "johndoe", "email": "john@example.com", "password": "mipassword123"}'
+
+# 2. Hacer login y obtener tokens
+curl -X POST http://localhost:8000/api/v1/auth/login \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "username=johndoe&password=mipassword123"
+
+# 3. Acceder a ruta protegida con el access token
+curl http://localhost:8000/api/v1/users/me \
+  -H "Authorization: Bearer <tu_access_token>"
+
+# 4. Renovar el access token con el refresh token
+curl -X POST http://localhost:8000/api/v1/auth/refresh \
+  -H "Content-Type: application/json" \
+  -d '{"refresh_token": "<tu_refresh_token>"}'
+```
+
+---
+
+## Flujo completo explicado
+
+```
+Usuario                    FastAPI                     Base de datos
+  │                           │                              │
+  │── POST /auth/register ───▶│                              │
+  │   {username, email, pw}   │── hash_password(pw) ────────▶│
+  │                           │◀─ user guardado ─────────────│
+  │◀── 201 UserResponse ──────│                              │
+  │                           │                              │
+  │── POST /auth/login ──────▶│                              │
+  │   {username, password}    │── get_user(username) ────────▶│
+  │                           │◀─ user con hashed_pw ────────│
+  │                           │── verify_password() ─────────│
+  │◀── 200 {access_token,     │                              │
+  │         refresh_token} ───│                              │
+  │                           │                              │
+  │── GET /users/me ─────────▶│                              │
+  │   Authorization: Bearer   │── decode_token() ────────────│
+  │                           │── get_user(sub) ─────────────▶│
+  │◀── 200 UserResponse ──────│◀─ user ──────────────────────│
+```
+
+---
+
+## Buenas prácticas para producción
+
+Antes de llevar esto a producción hay algunas cosas clave que reforzar:
+
+**1. Guarda el SECRET_KEY de forma segura**
+Nunca lo hardcodees. Usa variables de entorno, AWS Secrets Manager, Vault o el sistema de secretos de tu plataforma de deploy.
+
+**2. Usa HTTPS siempre**
+Los JWT viajan en los headers. Sin HTTPS son interceptables. Configura SSL en tu servidor o usa un reverse proxy como Nginx o Caddy.
+
+**3. Implementa una denylist para tokens revocados**
+El mayor problema de JWT es que no se pueden invalidar antes de que expiren. Para logout real, guarda los tokens revocados en Redis:
+
+```python
+import redis
+
+r = redis.Redis(host="localhost", port=6379, db=0)
+
+def revoke_token(token: str, expires_in: int):
+    """Agrega un token a la denylist en Redis."""
+    r.setex(f"revoked:{token}", expires_in, "1")
+
+def is_token_revoked(token: str) -> bool:
+    return r.exists(f"revoked:{token}") == 1
+```
+
+**4. Rota los tokens regularmente**
+Access tokens cortos (15-30 min) + refresh tokens más largos (7 días) es el balance correcto entre seguridad y UX.
+
+**5. Agrega rate limiting al endpoint de login**
+Para evitar ataques de fuerza bruta usa <a href="https://github.com/laurentS/slowapi" target="_blank" rel="noopener noreferrer">slowapi</a>:
+
+```python
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+limiter = Limiter(key_func=get_remote_address)
+
+@router.post("/login")
+@limiter.limit("5/minute")  # Máximo 5 intentos por minuto por IP
+async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
+    ...
+```
+
+---
+
+## Conclusión
+
+Con este setup tienes una base de autenticación sólida, siguiendo los estándares OAuth2 que usa la industria. El siguiente paso natural es conectar una base de datos real con SQLAlchemy o Tortoise ORM, y agregar autorización basada en roles (RBAC) para controlar qué puede hacer cada tipo de usuario.
+
+El código completo de este tutorial está disponible para que lo uses como base en tus proyectos.
+
+---
+
+## Fuentes y recursos
+
+- <a
+    href="https://fastapi.tiangolo.com/tutorial/security/oauth2-jwt/"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    FastAPI — OAuth2 with Password and JWT
+  </a>
+  — Documentación oficial
+- <a href="https://jwt.io" target="_blank" rel="noopener noreferrer">
+    JWT.io
+  </a>
+  — Debugger y documentación de JSON Web Tokens
+- <a
+    href="https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    OWASP Password Storage Cheat Sheet
+  </a>
+  — Buenas prácticas de hashing
+- <a
+    href="https://python-jose.readthedocs.io"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    python-jose
+  </a>
+  — Librería JWT para Python
+- <a
+    href="https://pwdlib.readthedocs.io"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    pwdlib
+  </a>
+  — Hashing de contraseñas con Argon2
