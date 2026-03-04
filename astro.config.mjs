@@ -2,9 +2,11 @@ import { defineConfig } from "astro/config";
 import tailwind from "@astrojs/tailwind";
 import { fileURLToPath } from "node:url";
 
+import mdx from "@astrojs/mdx";
+
 export default defineConfig({
   site: "https://lalonso.dev",
-  integrations: [tailwind()],
+  integrations: [tailwind(), mdx()],
   output: "static",
   images: {
     remotePatterns: [{ protocol: "https", hostname: "picsum.photos" }],

@@ -1,0 +1,272 @@
+---
+title: "Gemini 3.1 Flash-Lite: El modelo de IA más rápido y barato de Google"
+description: "Google lanzó hoy Gemini 3.1 Flash-Lite, el modelo más veloz de la familia Gemini 3. 363 tokens por segundo, $0.25 por millón de tokens de entrada, y benchmarks que superan a modelos más grandes y costosos. Todo lo que los developers necesitan saber."
+date: 2026-03-04
+cover: "/images/blog/gemini-3-1-flash-lite.webp"
+categories: ["Noticias", "IA"]
+readingTime: 8
+featured: true
+draft: false
+tags: ["ia", "google", "gemini", "api", "llm", "developers"]
+---
+
+## Llega el modelo más rápido de Gemini 3
+
+Hoy, 3 de marzo de 2026, Google lanzó en preview **Gemini 3.1 Flash-Lite**, el modelo más veloz y económico de toda la familia Gemini 3. Es la apuesta directa de Google contra <a href="https://openai.com" target="_blank" rel="noopener noreferrer">GPT-5 mini de OpenAI</a> y <a href="https://anthropic.com" target="_blank" rel="noopener noreferrer">Claude 4.5 Haiku de Anthropic</a> en el segmento de modelos de alta eficiencia para developers.
+
+La propuesta es simple pero poderosa: rendimiento comparable o superior a modelos más caros, a una fracción del costo, con velocidades que hacen posibles casos de uso que antes eran impracticables por latencia.
+
+---
+
+## Los números que importan
+
+Antes de entrar en detalles, aquí está el resumen ejecutivo para los que quieren los datos directos:
+
+| Métrica             | Gemini 3.1 Flash-Lite | Gemini 2.5 Flash |
+| ------------------- | --------------------- | ---------------- |
+| Precio input        | $0.25 / 1M tokens     | Mayor            |
+| Precio output       | $1.50 / 1M tokens     | Mayor            |
+| Velocidad output    | 363 tokens/seg        | 249 tokens/seg   |
+| Mejora de velocidad | **+45%**              | —                |
+| GPQA Diamond        | **86.9%**             | Menor            |
+| MMMU Pro            | **76.8%**             | Menor            |
+| Elo en Arena.ai     | **1,432**             | Menor            |
+| Contexto            | 1M tokens             | 1M tokens        |
+| Output máximo       | 64K tokens            | —                |
+
+Lo más destacable: Gemini 3.1 Flash-Lite es 2.5x más rápido en Time to First Answer Token y tiene un 45% de aumento en velocidad de output en comparación con Gemini 2.5 Flash, según el benchmark de <a href="https://artificialanalysis.ai/models/gemini-3-1-flash-lite-preview" target="_blank" rel="noopener noreferrer">Artificial Analysis</a>, manteniendo calidad similar o mejor.
+
+---
+
+## Qué hace diferente a Flash-Lite
+
+### Velocidad sin precedentes para un modelo de este tier
+
+Google promete velocidades de generación de hasta 363 tokens por segundo, entre dos y cinco veces más rápido que los competidores. Para ponerlo en perspectiva: a esa velocidad, un párrafo de texto se genera en menos de un segundo. Eso abre la puerta a aplicaciones en tiempo real que antes requerían compromisos difíciles entre calidad y latencia.
+
+Según Artificial Analysis, Gemini 3.1 Flash-Lite genera output a 388.8 tokens por segundo en la API de Google, muy por encima del promedio de modelos en su rango de precio, cuya mediana es 96.7 tokens por segundo.
+
+### Benchmarks que superan modelos de generaciones anteriores más grandes
+
+Gemini 3.1 Flash-Lite logra 86.9% en GPQA Diamond, el benchmark de razonamiento científico a nivel de posgrado, y 76.8% en MMMU Pro, el benchmark multimodal que evalúa razonamiento sobre imágenes, texto y diagramas — superando incluso modelos Gemini más grandes de generaciones anteriores.
+
+### Thinking Levels: control granular sobre el razonamiento
+
+Una de las features más interesantes del lanzamiento es **Thinking Levels**, disponible desde el primer día en <a href="https://aistudio.google.com" target="_blank" rel="noopener noreferrer">AI Studio</a> y Vertex AI. Los developers pueden ajustar directamente cuánto cómputo de razonamiento aplica el modelo a cada tarea: modo lean para traducción masiva o moderación de contenido, y más razonamiento para generación de interfaces, simulaciones o instrucciones complejas.
+
+Esto es especialmente valioso para pipelines que mezclan tareas de distinta complejidad en el mismo modelo.
+
+### Multimodal nativo
+
+Gemini 3.1 Flash-Lite acepta texto, imágenes, audio y video como input, con una ventana de contexto de hasta 1 millón de tokens y un output máximo de 64K tokens. Para la mayoría de casos de uso de developers, esto significa que un solo modelo puede manejar toda la pipeline de procesamiento sin necesidad de modelos especializados.
+
+---
+
+## Para qué está diseñado — y para qué no
+
+Google fue muy explícito sobre el posicionamiento del modelo. Google no publicó benchmarks de agentes, indicando que el modelo está pensado para procesamiento de datos más que para orquestar flotas de agentes.
+
+**Ideal para:**
+
+- Traducción masiva de contenido
+- Moderación de contenido a escala
+- Clasificación de texto en alto volumen
+- Generación de interfaces y simulaciones
+- Procesamiento de documentos en batch
+- Pipelines de extracción de datos
+
+**No es la mejor opción para:**
+
+- Orquestación de agentes autónomos complejos
+- Tareas que requieren razonamiento profundo y multi-step (para eso está Gemini 3 Pro)
+- Aplicaciones donde la verbosidad es un problema (el modelo tiende a ser verbose)
+
+---
+
+## Cómo empezar a usarlo hoy
+
+El modelo está disponible en preview vía la Gemini API en <a href="https://aistudio.google.com" target="_blank" rel="noopener noreferrer">Google AI Studio</a> y para empresas vía <a href="https://cloud.google.com/vertex-ai" target="_blank" rel="noopener noreferrer">Vertex AI</a>, pero no en la app consumer de Gemini. No hay fecha de disponibilidad general anunciada aún.
+
+### Instalación
+
+```bash
+npm install @google/generative-ai
+```
+
+### Ejemplo básico en TypeScript
+
+```ts
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+
+const model = genAI.getGenerativeModel({
+  model: "gemini-3.1-flash-lite-preview",
+});
+
+const result = await model.generateContent(
+  "Explica la diferencia entre REST y GraphQL en 3 puntos clave",
+);
+
+console.log(result.response.text());
+```
+
+### Con Thinking Levels configurado
+
+```ts
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+
+// Modo lean: máxima velocidad para tareas simples
+const fastModel = genAI.getGenerativeModel({
+  model: "gemini-3.1-flash-lite-preview",
+  generationConfig: {
+    thinkingConfig: {
+      thinkingBudget: 0, // Sin razonamiento adicional
+    },
+  },
+});
+
+// Modo razonamiento: para tareas complejas
+const thinkingModel = genAI.getGenerativeModel({
+  model: "gemini-3.1-flash-lite-preview",
+  generationConfig: {
+    thinkingConfig: {
+      thinkingBudget: 1024, // Tokens de razonamiento permitidos
+    },
+  },
+});
+
+// Clasificación masiva — usar fastModel
+const clasificacion = await fastModel.generateContent(
+  `Clasifica este texto en una de estas categorías: [spam, noticia, opinión, técnico]
+
+  Texto: "${textoAClasificar}"`,
+);
+
+// Generación de UI compleja — usar thinkingModel
+const ui = await thinkingModel.generateContent(
+  `Genera el código JSX de un dashboard de analíticas con:
+  gráfico de barras de ventas mensuales, tabla de top productos,
+  y tarjetas de métricas clave. Usa Tailwind CSS.`,
+);
+```
+
+### Ejemplo de pipeline de moderación a escala
+
+````ts
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+const model = genAI.getGenerativeModel({
+  model: "gemini-3.1-flash-lite-preview",
+});
+
+interface ModerationResult {
+  approved: boolean;
+  category: string;
+  confidence: number;
+  reason?: string;
+}
+
+async function moderateContent(text: string): Promise<ModerationResult> {
+  const prompt = `Analiza el siguiente texto y responde SOLO con JSON válido.
+
+  Texto: "${text}"
+
+  Responde con este formato exacto:
+  {
+    "approved": boolean,
+    "category": "safe" | "spam" | "hate" | "adult" | "violence",
+    "confidence": número entre 0 y 1,
+    "reason": "motivo solo si no está aprobado"
+  }`;
+
+  const result = await model.generateContent(prompt);
+  const raw = result.response.text();
+
+  return JSON.parse(raw.replace(/```json|```/g, "").trim());
+}
+
+// Procesar en paralelo para máximo throughput
+const textos = ["texto 1", "texto 2", "texto 3"];
+const resultados = await Promise.all(textos.map(moderateContent));
+
+console.log(resultados);
+````
+
+---
+
+## Comparativa vs los competidores directos
+
+Gemini 3.1 Flash-Lite es un desafío directo a GPT-5 nano, GPT-5-mini y Claude 4.5 Haiku en el segmento de eficiencia.
+
+| Modelo                    | Input (1M tokens) | Output (1M tokens) | Velocidad |
+| ------------------------- | ----------------- | ------------------ | --------- |
+| **Gemini 3.1 Flash-Lite** | **$0.25**         | $1.50              | 363 t/s   |
+| GPT-5 mini                | $0.15             | $0.60              | ~100 t/s  |
+| Claude 4.5 Haiku          | $0.25             | $1.25              | ~150 t/s  |
+
+En precio de input, GPT-5 mini sigue siendo más barato. Pero en velocidad, Flash-Lite no tiene competencia en este segmento. Para pipelines donde la latencia es crítica y el volumen es alto, la ecuación puede favorecer claramente a Flash-Lite.
+
+---
+
+## El contexto más amplio: la estrategia de Google
+
+El lanzamiento de Flash-Lite se desvía del patrón habitual de Google, que típicamente lanza primero una versión Flash más capaz. Esta vez arrancaron directamente por el tier de eficiencia, lo que sugiere que Google quiere consolidar cuota en ese segmento antes de que los competidores respondan.
+
+La estrategia es coherente con lo que Sundar Pichai ha repetido en los últimos meses: los modelos de IA seguirán siendo más rápidos y baratos con cada generación sucesiva, y quien controle el tier de alta eficiencia controla los casos de uso de mayor volumen — que a su vez generan los mayores ingresos por API.
+
+---
+
+## Conclusión
+
+Gemini 3.1 Flash-Lite es un lanzamiento serio. Los benchmarks son reales, la velocidad es medible y el precio es competitivo para el rendimiento que ofrece. Si tienes un pipeline de procesamiento de texto a escala — traducción, moderación, clasificación, extracción — este es el modelo que deberías estar evaluando hoy.
+
+Empieza con el <a href="https://aistudio.google.com" target="_blank" rel="noopener noreferrer">playground gratuito en Google AI Studio</a>, prueba los Thinking Levels y mide la latencia en tus casos de uso específicos antes de comprometerte.
+
+---
+
+## Fuentes
+
+- <a
+    href="https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-3-1-flash-lite/"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    Gemini 3.1 Flash-Lite: Built for intelligence at scale
+  </a>
+  — Blog oficial de Google, marzo 2026
+- <a
+    href="https://deepmind.google/models/model-cards/gemini-3-1-flash-lite/"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    Gemini 3.1 Flash-Lite Model Card
+  </a>
+  — Google DeepMind
+- <a
+    href="https://artificialanalysis.ai/models/gemini-3-1-flash-lite-preview"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    Gemini 3.1 Flash-Lite — Artificial Analysis
+  </a>
+  — Benchmarks independientes
+- <a
+    href="https://dataconomy.com/2026/03/04/google-launches-high-speed-gemini-3-1-flash-lite/"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    Google Launches High-speed Gemini 3.1 Flash-Lite
+  </a>
+  — Dataconomy, 4 de marzo 2026
+- <a
+    href="https://winbuzzer.com/2026/03/03/google-gemini-31-flash-lite-enterprise-scale-xcxwbn/"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    Google Launches Gemini 3.1 Flash-Lite for Enterprise Scale
+  </a>
+  — Winbuzzer, 3 de marzo 2026
