@@ -1,0 +1,563 @@
+---
+title: "Twig en Craft CMS 5: El sistema de plantillas que lo cambia todo"
+description: "Descubre por qué Twig es el motor de plantillas ideal para Craft CMS 5. Desde la estructura base hasta técnicas avanzadas como macros, eager loading, caché de templates y extends/blocks. Con ejemplos reales y listos para producción."
+date: 2026-03-05
+cover: "/images/blog/twig-craft-cms-5.webp"
+categories: ["Tutoriales", "Backend"]
+readingTime: 13
+featured: false
+draft: false
+tags: ["craft-cms", "twig", "php", "backend", "templates", "cms"]
+---
+
+## ¿Por qué Twig y Craft CMS son una combinación tan sólida?
+
+Si alguna vez has trabajado con WordPress y sus templates PHP mezclados con HTML, sabes el dolor que implica mantener eso a escala. <a href="https://craftcms.com/docs/5.x/development/twig.html" target="_blank" rel="noopener noreferrer">Craft CMS usa Twig</a> como motor de plantillas, y esa decisión de diseño lo cambia todo.
+
+<a href="https://twig.symfony.com" target="_blank" rel="noopener noreferrer">
+  Twig
+</a>
+es un motor de plantillas creado por el equipo de Symfony que separa de forma
+clara la lógica de presentación del código de negocio. Es seguro por defecto
+(escapa el output automáticamente), rápido (compila a PHP puro), y tiene una
+sintaxis tan legible que un diseñador sin conocimientos de PHP puede entenderla
+sin problema.
+
+La combinación con Craft CMS es especialmente potente porque Craft extiende Twig con sus propias variables, funciones y tags que te dan acceso directo al contenido, los assets, los usuarios y toda la estructura del CMS desde cualquier template.
+
+---
+
+## Estructura base de templates en Craft CMS 5
+
+Antes de entrar en técnicas avanzadas, hay que entender cómo organiza Craft sus templates. Craft trata los templates y directorios que empiezan con guión bajo (`_`) como "privados", y no los renderiza a menos que estén configurados explícitamente vía rutas o tipos de contenido.
+
+Una estructura típica de proyecto se ve así:
+
+```
+templates/
+├── _layouts/
+│   ├── base.twig          # Layout raíz con <html>, <head>, <body>
+│   └── page.twig          # Layout de página con sidebar opcional
+├── _includes/
+│   ├── _nav.twig          # Navegación global
+│   ├── _footer.twig       # Footer
+│   └── _card.twig         # Card reutilizable de entrada
+├── _macros/
+│   └── helpers.twig       # Macros globales del proyecto
+├── blog/
+│   ├── index.twig         # Listado del blog (URL pública: /blog)
+│   └── _entry.twig        # Template de entrada individual (privado)
+├── pages/
+│   └── _entry.twig        # Template de páginas genéricas
+└── index.twig             # Homepage
+```
+
+---
+
+## El sistema de herencia: `extends` y `blocks`
+
+La herencia de templates es el núcleo de cualquier arquitectura Twig bien hecha. Defines el esqueleto una vez y lo rellenas en cada template hijo.
+
+### Layout base
+
+```twig
+{# templates/_layouts/base.twig #}
+<!DOCTYPE html>
+<html lang="{{ craft.app.language }}">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  {# Bloque de SEO — cada template hijo puede sobreescribirlo #}
+  {% block seo %}
+    <title>{% block title %}{{ siteName }}{% endblock %}</title>
+    <meta name="description" content="{% block description %}{% endblock %}" />
+  {% endblock %}
+
+  {# Bloque de CSS — permite añadir estilos específicos por página #}
+  {% block css %}
+    {{ craft.app.view.renderCssTags() }}
+  {% endblock %}
+</head>
+<body class="{% block bodyClass %}{% endblock %}">
+
+  {% include '_includes/_nav' %}
+
+  <main id="content">
+    {# Bloque principal — todo el contenido va aquí #}
+    {% block content %}{% endblock %}
+  </main>
+
+  {% include '_includes/_footer' %}
+
+  {# Bloque de JS — scripts al final del body #}
+  {% block js %}
+    {{ craft.app.view.renderJsTags() }}
+  {% endblock %}
+
+</body>
+</html>
+```
+
+### Template de entrada de blog heredando del layout
+
+```twig
+{# templates/blog/_entry.twig #}
+{% extends '_layouts/base' %}
+
+{# Sobreescribir el título con los datos de la entrada #}
+{% block title %}{{ entry.title }} | {{ siteName }}{% endblock %}
+{% block description %}{{ entry.summary ?? entry.title }}{% endblock %}
+{% block bodyClass %}blog-entry{% endblock %}
+
+{% block content %}
+  <article class="post">
+    <header class="post__header">
+      <h1>{{ entry.title }}</h1>
+      <time datetime="{{ entry.postDate | date('Y-m-d') }}">
+        {{ entry.postDate | date('d M, Y') }}
+      </time>
+    </header>
+
+    {# Imagen destacada #}
+    {% set image = entry.featuredImage.one() %}
+    {% if image %}
+      {{ image.getImg({ class: 'post__cover', loading: 'eager' }) }}
+    {% endif %}
+
+    {# Contenido del post #}
+    <div class="post__body">
+      {{ entry.body }}
+    </div>
+  </article>
+{% endblock %}
+```
+
+---
+
+## Element Queries: el corazón de Craft en Twig
+
+En Craft CMS, consultas a entradas, assets, categorías y usuarios se hacen a través de **Element Queries**, directamente desde Twig.
+
+### Consulta básica de entradas
+
+```twig
+{# Últimas 6 entradas del blog, sin incluir la actual #}
+{% set posts = craft.entries()
+  .section('blog')
+  .limit(6)
+  .not(entry)
+  .orderBy('postDate DESC')
+  .all() %}
+
+{% for post in posts %}
+  <article>
+    <a href="{{ post.url }}">{{ post.title }}</a>
+    <time>{{ post.postDate | date('d M Y') }}</time>
+  </article>
+{% else %}
+  <p>No hay entradas disponibles.</p>
+{% endfor %}
+```
+
+### Filtrar por categoría, fecha y campos personalizados
+
+```twig
+{# Entradas de una categoría específica publicadas este año #}
+{% set currentYear = now | date('Y') %}
+
+{% set posts = craft.entries()
+  .section('blog')
+  .relatedTo({
+    targetElement: category,
+    field: 'blogCategory'
+  })
+  .after(currentYear ~ '-01-01')
+  .orderBy('postDate DESC')
+  .all() %}
+```
+
+---
+
+## Eager Loading: elimina el problema N+1
+
+Este es uno de los conceptos más importantes para el rendimiento en Craft CMS. Sin eager loading, cada entrada en un loop genera queries adicionales para cargar sus relaciones.
+
+### El problema sin eager loading
+
+```twig
+{# ❌ PROBLEMA: genera N+1 queries
+   1 query para las entradas + 1 query por cada entrada para cargar la imagen #}
+{% set posts = craft.entries().section('blog').all() %}
+
+{% for post in posts %}
+  {% set image = post.featuredImage.one() %}  {# Query adicional por cada post #}
+  {% if image %}
+    <img src="{{ image.url }}" alt="{{ image.title }}">
+  {% endif %}
+{% endfor %}
+```
+
+### La solución con eager loading
+
+Craft CMS 5 incluye el método `.eagerly()` en las element queries que simplifica el eager loading de campos relacionales. La mayoría de proyectos puede prescindir de mapas de eager loading manuales a favor de llamar `.eagerly()` en las queries de elementos.
+
+```twig
+{# ✅ CORRECTO con .with() — carga todo en 3 queries en total #}
+{% set posts = craft.entries()
+  .section('blog')
+  .with(['featuredImage', 'blogCategory'])
+  .all() %}
+
+{% for post in posts %}
+  {# Con eager loading, featuredImage es un array, no un ElementQuery #}
+  {% set image = post.featuredImage[0] ?? null %}
+  {% if image %}
+    <img src="{{ image.url }}" alt="{{ image.title }}">
+  {% endif %}
+
+  {% set category = post.blogCategory[0] ?? null %}
+  {% if category %}
+    <span class="tag">{{ category.title }}</span>
+  {% endif %}
+{% endfor %}
+```
+
+### Eager loading anidado (relaciones dentro de relaciones)
+
+```twig
+{# Eager loading de assets dentro de bloques Matrix #}
+{% set posts = craft.entries()
+  .section('blog')
+  .with([
+    'featuredImage',
+    'blogCategory',
+    'contentBlocks.imageBlock:blockImage'  {# Relación dentro de Matrix #}
+  ])
+  .all() %}
+```
+
+---
+
+## Macros: componentes reutilizables en Twig
+
+Los templates pueden definir macros, que son funciones reutilizables que generan HTML. Son especialmente útiles cuando un template necesita generar HTML similar múltiples veces, pero no vale la pena usar un `include` porque ningún otro template lo va a necesitar.
+
+### Definir y usar macros en el mismo template
+
+```twig
+{# Definir la macro #}
+{% macro postCard(post, showExcerpt = true) %}
+  <article class="card">
+    {% set image = post.featuredImage[0] ?? null %}
+    {% if image %}
+      <a href="{{ post.url }}" class="card__image-link">
+        {{ image.getImg({ class: 'card__image', loading: 'lazy' }) }}
+      </a>
+    {% endif %}
+
+    <div class="card__body">
+      <h2 class="card__title">
+        <a href="{{ post.url }}">{{ post.title }}</a>
+      </h2>
+
+      {% if showExcerpt and post.summary is defined %}
+        <p class="card__excerpt">{{ post.summary | truncate(120) }}</p>
+      {% endif %}
+
+      <time class="card__date" datetime="{{ post.postDate | date('Y-m-d') }}">
+        {{ post.postDate | date('d M, Y') }}
+      </time>
+    </div>
+  </article>
+{% endmacro %}
+
+{# Usar la macro #}
+{% set posts = craft.entries().section('blog').limit(6).all() %}
+
+<div class="grid">
+  {% for post in posts %}
+    {{ _self.postCard(post) }}
+  {% endfor %}
+</div>
+```
+
+### Importar macros desde un archivo externo
+
+Cuando las macros son útiles en múltiples templates, es mejor centralizarlas:
+
+```twig
+{# templates/_macros/helpers.twig #}
+{% macro badge(label, color = 'blue') %}
+  <span class="badge badge--{{ color }}">{{ label }}</span>
+{% endmacro %}
+
+{% macro breadcrumbs(items) %}
+  <nav aria-label="Breadcrumb">
+    <ol class="breadcrumbs">
+      {% for item in items %}
+        <li class="breadcrumbs__item {% if loop.last %}breadcrumbs__item--active{% endif %}">
+          {% if not loop.last %}
+            <a href="{{ item.url }}">{{ item.label }}</a>
+          {% else %}
+            <span>{{ item.label }}</span>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ol>
+  </nav>
+{% endmacro %}
+```
+
+```twig
+{# Importar y usar en cualquier template #}
+{% import '_macros/helpers' as helpers %}
+
+{{ helpers.badge('Nuevo', 'green') }}
+
+{{ helpers.breadcrumbs([
+  { label: 'Inicio', url: '/' },
+  { label: 'Blog', url: '/blog' },
+  { label: entry.title, url: entry.url }
+]) }}
+```
+
+---
+
+## Caché de templates con `{% cache %}`
+
+Debes usar `{% cache %}` cuando un template requiere muchas queries a la base de datos o estás haciendo algo computacionalmente costoso. Algunos ejemplos incluyen listas de elementos donde el eager loading no es posible, queries complejas con sumas o promedios, y datos externos de APIs o RSS feeds.
+
+```twig
+{# Cachear una sección costosa — se invalida automáticamente cuando cambia el contenido #}
+{% cache globally for 1 hour %}
+  {% set featuredPosts = craft.entries()
+    .section('blog')
+    .featured(true)
+    .with(['featuredImage', 'blogCategory'])
+    .limit(3)
+    .all() %}
+
+  <section class="featured-posts">
+    {% for post in featuredPosts %}
+      {# ... render de cada post #}
+    {% endfor %}
+  </section>
+{% endcache %}
+```
+
+### Caché con clave dinámica basada en URL
+
+```twig
+{# Útil cuando la URL incluye query strings relevantes como paginación o filtros #}
+{% set request = craft.app.request %}
+{% set cacheKey = request.fullUri ~ request.queryStringWithoutPath %}
+
+{% cache globally using key cacheKey for 30 minutes %}
+  {# Contenido costoso que varía por URL #}
+{% endcache %}
+```
+
+---
+
+## Paginación nativa de Craft
+
+```twig
+{# templates/blog/index.twig #}
+{% extends '_layouts/base' %}
+
+{% block content %}
+
+  {# paginate requiere que definas la query SIN .all() #}
+  {% paginate craft.entries()
+    .section('blog')
+    .with(['featuredImage', 'blogCategory'])
+    .orderBy('postDate DESC')
+    .limit(12) as pageInfo, posts %}
+
+  <div class="posts-grid">
+    {% for post in posts %}
+      {# ... render de cada post #}
+    {% endfor %}
+  </div>
+
+  {# Controles de paginación #}
+  {% if pageInfo.totalPages > 1 %}
+    <nav class="pagination" aria-label="Paginación">
+
+      {% if pageInfo.prevUrl %}
+        <a href="{{ pageInfo.prevUrl }}" class="pagination__prev">← Anterior</a>
+      {% endif %}
+
+      {% for page, url in pageInfo.getPrevUrls(2) %}
+        <a href="{{ url }}" class="pagination__page">{{ page }}</a>
+      {% endfor %}
+
+      <span class="pagination__current">{{ pageInfo.currentPage }}</span>
+
+      {% for page, url in pageInfo.getNextUrls(2) %}
+        <a href="{{ url }}" class="pagination__page">{{ page }}</a>
+      {% endfor %}
+
+      {% if pageInfo.nextUrl %}
+        <a href="{{ pageInfo.nextUrl }}" class="pagination__next">Siguiente →</a>
+      {% endif %}
+
+    </nav>
+  {% endif %}
+
+{% endblock %}
+```
+
+---
+
+## Técnicas avanzadas
+
+### Variables globales y `set` avanzado
+
+```twig
+{# Definir un objeto complejo como variable #}
+{% set seoData = {
+  title: entry.seoTitle ?? entry.title,
+  description: entry.seoDescription ?? entry.summary ?? '',
+  image: entry.seoImage.one() ?? entry.featuredImage.one() ?? null,
+  canonical: entry.url
+} %}
+
+<title>{{ seoData.title }} | {{ siteName }}</title>
+<meta name="description" content="{{ seoData.description }}">
+{% if seoData.image %}
+  <meta property="og:image" content="{{ seoData.image.url }}">
+{% endif %}
+```
+
+### Trabajar con Matrix Fields (CKEditor Blocks en Craft 5)
+
+```twig
+{# Iterar sobre bloques de contenido flexible #}
+{% for block in entry.contentBlocks.all() %}
+  {% switch block.type.handle %}
+
+    {% case 'textBlock' %}
+      <div class="block block--text">
+        {{ block.textContent }}
+      </div>
+
+    {% case 'imageBlock' %}
+      {% set blockImage = block.blockImage[0] ?? null %}
+      {% if blockImage %}
+        <figure class="block block--image">
+          {{ blockImage.getImg({ class: 'block__image' }) }}
+          {% if block.caption %}
+            <figcaption>{{ block.caption }}</figcaption>
+          {% endif %}
+        </figure>
+      {% endif %}
+
+    {% case 'quoteBlock' %}
+      <blockquote class="block block--quote">
+        <p>{{ block.quoteText }}</p>
+        {% if block.quoteAuthor %}
+          <cite>{{ block.quoteAuthor }}</cite>
+        {% endif %}
+      </blockquote>
+
+    {% case 'codeBlock' %}
+      <pre class="block block--code"><code class="language-{{ block.language }}">{{ block.code | escape }}</code></pre>
+
+  {% endswitch %}
+{% endfor %}
+```
+
+### Filtros útiles de Craft y Twig
+
+```twig
+{# Truncar texto manteniendo palabras completas #}
+{{ entry.summary | truncate(150, '...') }}
+
+{# Formatear fechas #}
+{{ entry.postDate | date('d \d\e F \d\e Y') }}   {# "5 de marzo de 2026" #}
+
+{# Markdown dentro de Twig #}
+{{ someText | md }}
+
+{# Purificar HTML (eliminar scripts maliciosos) #}
+{{ userContent | purify }}
+
+{# Convertir saltos de línea a <br> o <p> #}
+{{ entry.shortText | nl2br }}
+
+{# Agrupar entradas por mes #}
+{% set postsByMonth = posts | group(post => post.postDate | date('Y-m')) %}
+{% for month, monthPosts in postsByMonth %}
+  <h3>{{ month }}</h3>
+  {% for post in monthPosts %}
+    {# ... #}
+  {% endfor %}
+{% endfor %}
+```
+
+---
+
+## Templates privados y seguridad de rutas
+
+Craft trata los templates prefijados con guión bajo (`_`) como "privados" y no los renderiza directamente, evitando que alguien acceda a `misite.com/blog/_entry` y obtenga un error o información inesperada.
+
+Esto es una buena práctica que deberías aplicar consistentemente:
+
+```
+templates/
+├── blog/
+│   ├── index.twig      ✅ Accesible vía /blog
+│   └── _entry.twig     🔒 Solo renderizable desde configuración de sección
+├── _layouts/
+│   └── base.twig       🔒 Solo usable con extends
+└── _includes/
+    └── _nav.twig       🔒 Solo usable con include
+```
+
+---
+
+## Conclusión
+
+Twig no es solo el motor de templates de Craft CMS — es lo que hace que trabajar con Craft sea una experiencia completamente diferente a cualquier otro CMS PHP. La herencia de templates con `extends` y `blocks`, las macros para componentes reutilizables, el eager loading para queries eficientes y el sistema de caché nativo son herramientas que, bien usadas, permiten construir sitios rápidos, mantenibles y escalables.
+
+Si vienes de WordPress, el cambio mental es significativo al principio, pero una vez que lo internalizas es difícil volver atrás.
+
+---
+
+## Fuentes y recursos
+
+- <a
+    href="https://craftcms.com/docs/5.x/development/twig.html"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    Twig Fundamentals — Craft CMS 5 Docs
+  </a>
+  — Documentación oficial
+- <a
+    href="https://craftcms.com/docs/5.x/development/eager-loading.html"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    Eager-Loading Elements — Craft CMS 5 Docs
+  </a>
+  — Guía oficial de eager loading
+- <a href="https://craftcms.com/docs/5.x/reference/twig/tags.html" target="_blank" rel="noopener noreferrer">Twig Tags Reference — Craft CMS 5 Docs</a> — Referencia de tags incluyendo `{% cache %}`
+- <a
+    href="https://twig.symfony.com/doc/3.x/"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    Twig Documentation
+  </a>
+  — Documentación oficial de Twig
+- <a
+    href="https://nystudio107.com/blog/an-effective-twig-base-templating-setup"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    An Effective Twig Base Templating Setup
+  </a>
+  — nystudio107
