@@ -1,0 +1,579 @@
+---
+title: "Vite + Craft CMS 5 con DDEV: desarrollo frontend moderno desde cero"
+description: "Configura Vite.js en Craft CMS 5 usando DDEV como entorno local. HMR de JavaScript, CSS y Twig, TypeScript, Tailwind CSS v4 y builds optimizados para producción. La guía completa en español."
+date: 2026-03-06
+cover: "/images/blog/vite-craft-cms-5.webp"
+categories: ["Tutoriales", "Frontend", "Craft CMS"]
+readingTime: 12
+featured: false
+draft: false
+tags: ["craft-cms", "vite", "ddev", "frontend", "typescript", "tailwind", "hmr"]
+---
+
+## Por qué DDEV + Vite es el stack de desarrollo ideal para Craft CMS 5
+
+<a href="https://ddev.com" target="_blank" rel="noopener noreferrer">
+  DDEV
+</a>
+se ha convertido en el entorno de desarrollo local estándar para proyectos Craft
+CMS. Corre en Docker, es reproducible entre equipos, no instala nada en tu
+sistema operativo y tiene soporte oficial de Pixel & Tonic (el equipo detrás de
+Craft).
+
+El problema es que DDEV añade una capa de complejidad a la hora de integrar Vite: el servidor de desarrollo de Vite corre dentro del contenedor Docker, pero el navegador lo accede desde fuera. Si no configuras correctamente el CORS y el `origin`, el HMR simplemente no funciona.
+
+En este tutorial vas a configurar todo desde cero de forma correcta. Al final tendrás:
+
+- Entorno DDEV funcionando con Craft CMS 5
+- <a href="https://vitejs.dev" target="_blank" rel="noopener noreferrer">
+    Vite.js
+  </a>
+  con HMR instantáneo de JavaScript, CSS **y Twig**
+- TypeScript sin configuración extra
+- Tailwind CSS v4 integrado
+- Build de producción optimizado con assets hasheados
+- Todos los comandos corriendo **dentro del contenedor DDEV** con `ddev npm`
+
+---
+
+## Requisitos previos
+
+Antes de empezar necesitas tener instalado:
+
+- <a
+    href="https://ddev.com/get-started/"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    DDEV
+  </a>
+  (v1.23 o superior)
+- Docker Desktop (macOS/Windows) o Docker Engine (Linux)
+- Composer instalado localmente o disponible vía DDEV
+
+Si es tu primera vez con DDEV, la <a href="https://ddev.readthedocs.io/en/stable/" target="_blank" rel="noopener noreferrer">documentación oficial</a> tiene guías de instalación para macOS, Windows (WSL2) y Linux.
+
+---
+
+## Estructura del proyecto
+
+```
+mi-proyecto/
+├── .ddev/
+│   └── config.yaml             # Configuración de DDEV
+├── config/
+│   └── vite.php                # Configuración del plugin Vite para Craft
+├── templates/
+│   └── _layouts/
+│       └── base.twig           # Layout base con tags de Vite
+├── web/
+│   └── dist/                   # Assets compilados (ignorar en Git)
+├── src/
+│   ├── js/
+│   │   └── app.ts              # Entry point principal
+│   └── css/
+│       └── app.css             # Estilos con Tailwind v4
+├── vite.config.ts
+├── package.json
+└── tsconfig.json
+```
+
+> En un proyecto Craft estándar con DDEV, la carpeta `web/` es el `docroot` y todo el código PHP de Craft vive en la raíz del proyecto. A diferencia del tutorial sin DDEV, aquí **no hay subcarpeta `cms/`** — Craft y el frontend conviven en la misma raíz.
+
+---
+
+## Paso 1: Crear el proyecto con DDEV
+
+```bash
+mkdir mi-proyecto && cd mi-proyecto
+
+# Configurar DDEV para Craft CMS
+ddev config --project-type=craftcms --docroot=web --project-name=mi-proyecto
+
+# Iniciar los contenedores
+ddev start
+
+# Instalar Craft CMS vía Composer dentro del contenedor
+ddev composer create -y craftcms/craft
+```
+
+Una vez completado, Craft estará disponible en `https://mi-proyecto.ddev.site`.
+
+---
+
+## Paso 2: Instalar el plugin nystudio107/craft-vite
+
+```bash
+ddev composer require nystudio107/craft-vite
+
+# Instalar el plugin desde la CLI de Craft
+ddev craft install/plugin vite
+```
+
+---
+
+## Paso 3: Exponer el puerto de Vite en DDEV
+
+Esta es la parte crítica que diferencia la configuración con DDEV de una configuración local estándar. El servidor de Vite necesita estar accesible desde el navegador, que está fuera del contenedor Docker. Para eso, DDEV debe exponer el puerto 3000.
+
+Edita `.ddev/config.yaml` y añade la configuración de puerto:
+
+```yaml
+# .ddev/config.yaml
+name: mi-proyecto
+type: craftcms
+docroot: web
+php_version: "8.3"
+webserver_type: nginx-fpm
+nodejs_version: "22"
+
+# Exponer el puerto de Vite al host
+web_extra_exposed_ports:
+  - name: vite
+    container_port: 3000
+    http_port: 3000
+    https_port: 3001
+```
+
+Después de editar el archivo, reinicia DDEV para aplicar los cambios:
+
+```bash
+ddev restart
+```
+
+Con esto, el servidor de Vite será accesible desde `https://mi-proyecto.ddev.site:3001` en el navegador.
+
+---
+
+## Paso 4: Configurar el plugin Vite en Craft
+
+Crea el archivo `config/vite.php`:
+
+```php
+<?php
+
+use craft\helpers\App;
+
+return [
+    // Usa el dev server cuando el entorno sea 'dev'
+    'useDevServer' => App::env('CRAFT_ENVIRONMENT') === 'dev',
+
+    // Ruta al manifest generado por Vite 5+ (va en .vite/ por defecto)
+    'manifestPath' => '@webroot/dist/.vite/manifest.json',
+
+    // URL pública del dev server — usa el dominio DDEV con el puerto HTTPS expuesto
+    'devServerPublic' => App::env('VITE_DEV_SERVER_PUBLIC') ?? 'https://mi-proyecto.ddev.site:3001/',
+
+    // URL pública de los assets compilados para producción
+    'serverPublic' => App::env('PRIMARY_SITE_URL') . '/dist/',
+
+    // Entry point para inyectar en páginas de error (permite HMR incluso en errores)
+    'errorEntry' => 'src/js/app.ts',
+
+    // Verificar si el dev server está activo antes de usarlo
+    'checkDevServer' => true,
+
+    // URL interna del dev server (accesible desde PHP dentro del contenedor)
+    'devServerInternal' => 'http://localhost:3000/',
+];
+```
+
+Añade la variable de entorno en tu `.env`:
+
+```bash
+# .env
+CRAFT_ENVIRONMENT=dev
+PRIMARY_SITE_URL=https://mi-proyecto.ddev.site
+VITE_DEV_SERVER_PUBLIC=https://mi-proyecto.ddev.site:3001/
+```
+
+---
+
+## Paso 5: Instalar dependencias de Node dentro de DDEV
+
+Un punto importante: **todos los comandos `npm` deben ejecutarse con el prefijo `ddev`** para que corran dentro del contenedor, donde Node.js está disponible.
+
+```bash
+# Inicializar package.json
+ddev npm init -y
+
+# Instalar dependencias
+ddev npm install -D vite typescript @tailwindcss/vite vite-plugin-restart
+```
+
+El `package.json` resultante:
+
+```json
+{
+  "name": "mi-proyecto",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.0.0",
+    "typescript": "^5.7.0",
+    "vite": "^6.0.0",
+    "vite-plugin-restart": "^0.4.0"
+  }
+}
+```
+
+---
+
+## Paso 6: Configurar Vite para DDEV
+
+La clave de la configuración para DDEV es que `server.host` debe ser `0.0.0.0` para que Vite escuche en todas las interfaces de red del contenedor, y `server.origin` debe apuntar al dominio DDEV con el puerto expuesto para que los assets generados tengan la URL correcta.
+
+```ts
+// vite.config.ts
+import { defineConfig } from "vite";
+import tailwindcss from "@tailwindcss/vite";
+import ViteRestart from "vite-plugin-restart";
+
+// Leer variables de entorno de DDEV
+const devServerPublic =
+  process.env.VITE_DEV_SERVER_PUBLIC ?? "https://mi-proyecto.ddev.site:3001/";
+
+export default defineConfig(({ command }) => ({
+  // En dev, base vacío. En build, apunta a /dist/
+  base: command === "serve" ? "" : "/dist/",
+
+  build: {
+    manifest: true,
+    outDir: "./web/dist/",
+    emptyOutDir: true,
+    rollupOptions: {
+      input: {
+        app: "src/js/app.ts",
+      },
+    },
+  },
+
+  plugins: [
+    tailwindcss(),
+
+    // Recarga automática al cambiar templates Twig o config de Craft
+    ViteRestart({
+      reload: ["./templates/**/*", "./config/**/*"],
+    }),
+  ],
+
+  server: {
+    // 0.0.0.0 para escuchar en todas las interfaces del contenedor Docker
+    host: "0.0.0.0",
+    port: 3000,
+    strictPort: true,
+
+    // origin apunta al dominio DDEV externo con el puerto HTTPS expuesto
+    // Esto garantiza que las URLs de los assets HMR sean correctas en el navegador
+    origin: devServerPublic.replace(/\/$/, ""),
+
+    // CORS: permitir solo dominios .ddev.site
+    cors: {
+      origin: /https?:\/\/([A-Za-z0-9\-\.]+)?\.ddev\.site(?::\d+)?$/,
+    },
+
+    // Necesario para servir archivos fuera de la raíz de Vite
+    fs: {
+      strict: false,
+    },
+
+    headers: {
+      "Access-Control-Allow-Private-Network": "true",
+    },
+  },
+}));
+```
+
+---
+
+## Paso 7: TypeScript y estilos
+
+```json
+// tsconfig.json
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "types": ["vite/client"]
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "web/dist"]
+}
+```
+
+### Entry point TypeScript
+
+```ts
+// src/js/app.ts
+import "../css/app.css";
+
+// HMR: necesario para hot-reload del entry point sin full page reload
+if (import.meta.hot) {
+  import.meta.hot.accept(() => {
+    console.log("HMR activo");
+  });
+}
+
+console.log("Craft CMS 5 + Vite + DDEV ✓");
+
+// Ejemplo de lazy loading — Vite genera un chunk separado automáticamente
+document.addEventListener("DOMContentLoaded", async () => {
+  if (document.querySelector(".slider")) {
+    const { initSlider } = await import("./modules/slider");
+    initSlider();
+  }
+});
+```
+
+### Tailwind CSS v4
+
+Con Tailwind v4 no hace falta `tailwind.config.js`. Todo se define en el CSS:
+
+```css
+/* src/css/app.css */
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", system-ui, sans-serif;
+  --color-brand-500: oklch(55% 0.2 250);
+  --color-brand-900: oklch(25% 0.1 250);
+}
+
+@layer base {
+  body {
+    @apply font-sans text-gray-900 bg-white;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center px-4 py-2 rounded-lg bg-brand-500 text-white hover:bg-brand-900 transition-colors font-medium;
+  }
+}
+```
+
+---
+
+## Paso 8: Integrar en Twig
+
+```twig
+{# templates/_layouts/base.twig #}
+<!DOCTYPE html>
+<html lang="{{ craft.app.language }}">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>{% block title %}{{ siteName }}{% endblock %}</title>
+
+  {#
+    En DEV (con dev server activo):
+      → <script type="module" src="https://mi-proyecto.ddev.site:3001/src/js/app.ts">
+
+    En PROD (con archivos compilados):
+      → <link rel="stylesheet" href="/dist/assets/app-[hash].css">
+      → <script type="module" src="/dist/assets/app-[hash].js">
+  #}
+  {{ craft.vite.asset('src/js/app.ts') }}
+
+  {% block head %}{% endblock %}
+</head>
+<body>
+
+  {% include '_includes/_nav' %}
+
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  {% include '_includes/_footer' %}
+
+</body>
+</html>
+```
+
+---
+
+## Flujo de trabajo diario con DDEV
+
+### Desarrollo
+
+```bash
+# Iniciar DDEV (si no está corriendo)
+ddev start
+
+# En una segunda terminal, arrancar Vite dentro del contenedor
+ddev npm run dev
+```
+
+Con ambos procesos activos:
+
+- Tu sitio Craft corre en `https://mi-proyecto.ddev.site`
+- Vite escucha en el puerto 3000 dentro del contenedor
+- El navegador accede al HMR vía `https://mi-proyecto.ddev.site:3001`
+- Cambios en `.ts`/`.js` → HMR instantáneo
+- Cambios en `.css` → HMR de estilos
+- Cambios en `.twig` → recarga automática de página
+
+### Producción
+
+```bash
+# Build de producción (dentro del contenedor)
+ddev npm run build
+
+# Los assets quedan en web/dist/ con hashes en los nombres
+# Craft lee el manifest.json y genera los tags correctos automáticamente
+```
+
+---
+
+## Makefile opcional para simplificar comandos
+
+Si trabajas en equipo o quieres estandarizar los comandos, un `Makefile` en la raíz del proyecto simplifica mucho el día a día:
+
+```makefile
+# Makefile
+.PHONY: install up dev build
+
+# Primera instalación completa
+install:
+	ddev start
+	ddev composer install
+	ddev craft install
+	ddev npm install
+
+# Arrancar el entorno
+up:
+	ddev start
+
+# Modo desarrollo (Craft + Vite HMR)
+dev:
+	ddev npm run dev
+
+# Build de producción
+build:
+	ddev npm run build
+```
+
+Uso:
+
+```bash
+make install   # Primera vez
+make up        # Arrancar DDEV
+make dev       # Iniciar Vite con HMR
+make build     # Build para producción
+```
+
+---
+
+## Solución de problemas comunes
+
+### HMR no funciona o los assets no cargan
+
+Verifica que el puerto esté correctamente expuesto en `.ddev/config.yaml` y que hayas reiniciado DDEV después de editar el archivo:
+
+```bash
+ddev restart
+```
+
+### Error de CORS en la consola del navegador
+
+Asegúrate de que el `origin` en `vite.config.ts` coincide exactamente con el dominio DDEV del proyecto. Puedes verificarlo con:
+
+```bash
+ddev describe | grep "https"
+```
+
+### El plugin PHP no detecta el dev server
+
+Revisa que `devServerInternal` en `config/vite.php` apunta a `http://localhost:3000/` — esa es la URL que PHP usa **dentro del contenedor** para verificar si Vite está corriendo.
+
+### Node.js no disponible fuera de DDEV
+
+Recuerda siempre usar el prefijo `ddev` para los comandos npm:
+
+```bash
+# ❌ Esto falla si no tienes Node instalado localmente
+npm run dev
+
+# ✅ Esto siempre funciona — usa Node del contenedor
+ddev npm run dev
+```
+
+---
+
+## Resultado final
+
+| Feature                          | Estado                |
+| -------------------------------- | --------------------- |
+| Entorno reproducible con DDEV    | ✅                    |
+| HMR de JavaScript y CSS          | ✅ Instantáneo        |
+| HMR de templates Twig            | ✅ Recarga automática |
+| TypeScript                       | ✅ Sin config extra   |
+| Tailwind CSS v4                  | ✅ Plugin nativo      |
+| Code splitting automático        | ✅ Por Rollup         |
+| Assets hasheados en producción   | ✅ Con manifest       |
+| Comandos unificados con Makefile | ✅ Opcional           |
+
+---
+
+## Conclusión
+
+La combinación DDEV + Craft CMS 5 + Vite es hoy el stack más sólido para proyectos PHP con frontend moderno. La parte más delicada es la configuración de red entre el contenedor Docker y el navegador, pero con el `config.yaml` de DDEV y el `origin` correcto en Vite todo encaja.
+
+Una vez configurado, el flujo de trabajo es tan fluido como cualquier proyecto Next.js o Astro — con la ventaja de tener todo el poder de Craft CMS como backend.
+
+---
+
+## Fuentes y recursos
+
+- <a
+    href="https://nystudio107.com/docs/vite/"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    nystudio107/craft-vite — Documentación oficial del plugin
+  </a>
+- <a
+    href="https://ddev.readthedocs.io/en/stable/users/usage/vite/"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    DDEV — Vite Integration Docs
+  </a>
+- <a
+    href="https://ddev.com/blog/working-with-vite-in-ddev/"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    Working with Vite in DDEV — Blog oficial de DDEV
+  </a>
+- <a
+    href="https://craftcms.com/docs/5.x/"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    Craft CMS 5 — Documentación oficial
+  </a>
+- <a
+    href="https://vitejs.dev/guide/backend-integration.html"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    Vite.js — Backend Integration Guide
+  </a>
+- <a
+    href="https://tailwindcss.com/docs/installation/vite"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    Tailwind CSS v4 — Instalación con Vite
+  </a>
