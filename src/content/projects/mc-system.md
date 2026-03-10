@@ -9,7 +9,7 @@ cover: "/images/projects/McSystem.webp"
 gallery: []
 technologies:
   ["Tauri", "React", "TypeScript", "TailwindCSS", "NestJS", "Prisma", "SQLite"]
-liveUrl: "https://github.com/lalonso-dev/McSystem"
+liveUrl: "https://youtu.be/-YFiyk4XutM?si=YOjGcRnXaU1NgarT"
 githubUrl: "https://github.com/lalonso-dev/McSystem"
 client: "lalonso"
 externalProject: false
