@@ -1,0 +1,381 @@
+---
+title: "El hackeo de Axios: cómo un ataque a npm comprometió 100M de descargas semanales"
+description: "El 31 de marzo de 2026, un actor norcoreano comprometió la cuenta del mantenedor principal de Axios e inyectó un RAT cross-platform en dos versiones del paquete. Si usas Node.js, necesitas leer esto ahora."
+date: 2026-04-03
+cover: "/images/blog/axios-npm-hack-2026.webp"
+categories: ["Seguridad", "Noticias"]
+readingTime: 11
+featured: true
+draft: false
+tags:
+  ["seguridad", "npm", "nodejs", "supply-chain", "javascript", "ciberseguridad"]
+---
+
+## Acción inmediata requerida
+
+Si tu proyecto usa Axios, esto es lo primero que debes hacer antes de seguir leyendo:
+
+```bash
+# Verifica si tienes las versiones comprometidas
+npm list axios
+
+# Si ves 1.14.1 o 0.30.4, haz esto de inmediato:
+npm install axios@1.14.0  # o axios@0.30.3 para la rama legacy
+
+# Limpia el cache
+npm cache clean --force
+
+# Verifica que plain-crypto-js NO esté en tus dependencias
+npm list plain-crypto-js  # Si aparece, tu entorno está comprometido
+```
+
+**Versiones seguras:** `axios@1.14.0` y `axios@0.30.3`
+**Versiones comprometidas:** `axios@1.14.1` y `axios@0.30.4`
+
+---
+
+## Qué ocurrió
+
+El **31 de marzo de 2026**, entre las 00:21 y las 03:20 UTC, un actor de amenazas comprometió la cuenta npm del mantenedor principal de <a href="https://github.com/axios/axios" target="_blank" rel="noopener noreferrer">Axios</a> — la librería HTTP más popular del ecosistema JavaScript, con más de **100 millones de descargas semanales** — y publicó dos versiones envenenadas que instalaban silenciosamente un Remote Access Trojan (RAT) cross-platform en sistemas Windows, macOS y Linux.
+
+Las versiones maliciosas estuvieron disponibles durante aproximadamente **tres horas** antes de ser detectadas y eliminadas de npm. En ese tiempo, cualquier pipeline de CI/CD, entorno de desarrollo o sistema de producción que corriera `npm install` y resolviera a esas versiones quedó potencialmente comprometido — sin ninguna interacción del usuario requerida.
+
+<a
+  href="https://cloud.google.com/blog/topics/threat-intelligence/north-korea-threat-actor-targets-axios-npm-package"
+  target="_blank"
+  rel="noopener noreferrer"
+>
+  Google Threat Intelligence Group (GTIG)
+</a>
+atribuyó el ataque a **UNC1069**, un actor de amenazas financieramente motivado
+con nexo en Corea del Norte, activo desde al menos 2018.
+<a
+  href="https://www.microsoft.com/en-us/security/blog/2026/04/01/mitigating-the-axios-npm-supply-chain-compromise"
+  target="_blank"
+  rel="noopener noreferrer"
+>
+  Microsoft Threat Intelligence
+</a>
+lo atribuyó al grupo **Sapphire Sleet**, nombre con el que rastrean al mismo
+actor.
+
+---
+
+## El timeline completo del ataque
+
+Lo que hace a este ataque especialmente sofisticado es la precisión de su preparación — todo fue planeado con 18 horas de anticipación:
+
+```
+30 MAR 2026, 05:57 UTC
+└── Se publica plain-crypto-js@4.2.0 (versión limpia y decoy)
+    Objetivo: construir historial de publicación para reducir sospechas
+
+30 MAR 2026, 23:59 UTC
+└── Se publica plain-crypto-js@4.2.1 (versión maliciosa con payload)
+
+31 MAR 2026, 00:21 UTC
+└── Se publica axios@1.14.1 con plain-crypto-js inyectado como dependencia
+    Cuenta usada: jasonsaayman (comprometida)
+    Email cambiado a: ifstap@proton.me
+
+31 MAR 2026, 01:00 UTC
+└── Se publica axios@0.30.4 (rama legacy) con el mismo payload
+    Ambas ramas comprometidas en 39 minutos
+
+31 MAR 2026, 01:50 UTC
+└── Elastic Security Labs presenta GitHub Security Advisory a los mantenedores
+
+31 MAR 2026, ~03:20 UTC
+└── npm elimina las versiones maliciosas del registry
+    Ventana de exposición: ~3 horas
+
+01 ABR 2026
+└── GTIG y Microsoft publican atribución oficial a UNC1069 / Sapphire Sleet
+```
+
+Huntress observó que el **primer endpoint comprometido en su base de clientes fue infectado 89 segundos después de que axios@1.14.1 fue publicado** — consistente con pipelines de CI/CD automatizados usando caret ranges (`^1.x`) sin dependencias fijadas.
+
+---
+
+## Cómo funcionó el ataque técnicamente
+
+### Paso 1: Comprometer la cuenta del mantenedor
+
+El atacante obtuvo un **token de acceso clásico de larga duración** para la cuenta npm `jasonsaayman` — el mantenedor principal de Axios. Este token le permitió publicar directamente al registry de npm sin pasar por el pipeline de GitHub Actions.
+
+Un detalle crítico que Huntress documentó: aunque la rama v1.x tenía configurado OIDC Trusted Publishing, el workflow seguía pasando `NPM_TOKEN` como variable de entorno junto a las credenciales OIDC. Cuando ambos están presentes, npm usa el token. Esto significa que el token de larga duración era efectivamente el método de autenticación para todas las publicaciones, independientemente de la configuración OIDC.
+
+El propio mantenedor comentó en el issue de GitHub: _"im trying to get support to understand how this even happened. i have 2fa / mfa on practically everything."_
+
+Esto evidencia una debilidad sistémica en cómo npm maneja la coexistencia de tokens clásicos y OIDC publishing — no es un fallo del mantenedor.
+
+### Paso 2: Inyectar la dependencia maliciosa
+
+Las versiones comprometidas de Axios no modificaron el código fuente de la librería. En cambio, añadieron `plain-crypto-js@4.2.1` como dependencia en el `package.json` — una dependencia que el código real de Axios nunca importa en ninguna parte.
+
+El flag crítico: **el Axios real tiene solo tres dependencias** (`follow-redirects`, `form-data`, `proxy-from-env`). La adición de `plain-crypto-js` es manipulación inequívoca y detectable para cualquiera que audite sus dependencias.
+
+### Paso 3: Ejecución automática via postinstall hook
+
+La magia oscura ocurre aquí. El `package.json` de `plain-crypto-js@4.2.1` incluía:
+
+```json
+{
+  "scripts": {
+    "postinstall": "node setup.js"
+  }
+}
+```
+
+Cuando npm instala un paquete, ejecuta automáticamente los lifecycle scripts — incluyendo `postinstall` — sin que el usuario lo sepa ni lo autorice. `setup.js` era un dropper JavaScript de 4,209 bytes con ofuscación de doble capa:
+
+```
+Base64 invertido → strings con underscores → Base64 decodificado → código ejecutable
+```
+
+### Paso 4: Detección del sistema operativo y descarga del RAT
+
+`setup.js` — bautizado como **SILKBELL** por GTIG — detectaba el sistema operativo del host y descargaba un payload específico desde el servidor C2 `sfrclak[.]com:8000`:
+
+- **Windows:** `WAVESHAPER.V2` para PowerShell
+- **macOS:** Implementación nativa para macOS
+- **Linux:** Implementación para sistemas Unix
+
+Lo notable: los tres no son herramientas distintas, sino **un único framework de implante cross-platform** con implementaciones nativas por OS, compartiendo el mismo protocolo C2, estructura de comandos y comportamiento de beacon.
+
+Una vez instalado el RAT, el atacante tenía:
+
+- Acceso remoto persistente al sistema comprometido
+- Capacidad de exfiltrar credenciales: cloud access keys, tokens de API, contraseñas de bases de datos, deploy keys
+- Control completo del entorno — máquina del developer o pipeline de CI/CD
+
+---
+
+## Por qué este ataque es especialmente peligroso
+
+### El radio de impacto es enorme
+
+Axios es **dependencia transitiva de miles de paquetes**. Esto significa que tu proyecto podría usar Axios sin que ningún developer lo haya instalado explícitamente. Si usas cualquier software basado en Node.js, la probabilidad de que Axios esté en algún lugar de tu árbol de dependencias es muy alta.
+
+Con ~100 millones de descargas semanales, el blast radius potencial de este ataque es comparable al compromiso de `ua-parser-js` de 2021 y al incidente de `event-stream`.
+
+### Funcionaba en silencio
+
+El comportamiento normal de la aplicación no se veía afectado. El código lógico de Axios estaba intacto. La única señal era la presencia de `plain-crypto-js` en el directorio de módulos. Ejecutar `npm audit` tampoco revelaba el compromiso, ya que la dependencia maliciosa no tenía CVEs registrados al momento del ataque.
+
+### Apuntó a CI/CD, no solo a developers
+
+Los pipelines de CI/CD automáticamente instalan dependencias en cada build. Cualquier pipeline que corriera entre las 00:21 y las 03:20 UTC del 31 de marzo sin dependencias fijadas exactas quedó expuesto.
+
+---
+
+## Cómo saber si estás afectado
+
+### Verifica tus dependencias
+
+```bash
+# Busca las versiones comprometidas en tu proyecto
+npm list axios | grep -E "1\.14\.1|0\.30\.4"
+
+# Busca la dependencia maliciosa directamente
+npm list plain-crypto-js
+
+# Revisa tu lockfile
+grep -E "axios@1\.14\.1|axios@0\.30\.4|plain-crypto-js" package-lock.json
+```
+
+### Revisa los logs de CI/CD
+
+Busca en los logs de todos los builds que corrieron entre **00:21 y 03:20 UTC del 31 de marzo de 2026** cualquier instalación de:
+
+- `axios@1.14.1`
+- `axios@0.30.4`
+- `plain-crypto-js` (cualquier versión)
+
+### Señales de compromiso activo
+
+Si encontraste las versiones comprometidas, busca estas señales en tus sistemas:
+
+- Conexiones de red a `sfrclak[.]com:8000`
+- Proceso `node setup.js` ejecutándose inesperadamente
+- Archivos nuevos en directorios temporales del sistema (`/tmp`, `%TEMP%`)
+- Cambios inexplicables en credenciales o tokens
+
+---
+
+## Remediation si estás comprometido
+
+Si plain-crypto-js aparece en tu árbol de dependencias, asume que el entorno está comprometido y sigue estos pasos:
+
+```bash
+# 1. Downgrade inmediato a versión segura
+npm install axios@1.14.0
+
+# Para proyectos legacy
+npm install axios@0.30.3
+
+# 2. Forzar versión en todas las dependencias transitivas
+# Añade en package.json:
+```
+
+```json
+{
+  "overrides": {
+    "axios": "1.14.0"
+  }
+}
+```
+
+```bash
+# 3. Limpiar todo
+npm cache clean --force
+rm -rf node_modules package-lock.json
+npm install
+
+# 4. Rotar TODAS las credenciales del entorno comprometido:
+# - API keys
+# - Tokens de npm
+# - Credenciales de cloud (AWS, GCP, Azure)
+# - Deploy keys de GitHub/GitLab
+# - Variables de entorno con secretos
+
+# 5. Revertir deployments que usaron las versiones maliciosas
+# a un estado anterior conocido como bueno
+```
+
+---
+
+## Cómo prevenir este tipo de ataque en el futuro
+
+### 1. Fija versiones exactas, nunca rangos flotantes
+
+```json
+// ❌ Vulnerable a este tipo de ataque
+{
+  "dependencies": {
+    "axios": "^1.14.0"
+  }
+}
+
+// ✅ Protegido
+{
+  "dependencies": {
+    "axios": "1.14.0"
+  }
+}
+```
+
+### 2. Usa `npm ci` en CI/CD, nunca `npm install`
+
+```bash
+# En pipelines de CI/CD
+npm ci  # Respeta el lockfile exactamente, nunca actualiza versiones
+```
+
+### 3. Deshabilita los lifecycle scripts en instalaciones de producción
+
+```bash
+# Previene que postinstall hooks maliciosos se ejecuten
+npm install --ignore-scripts
+
+# O en .npmrc
+ignore-scripts=true
+```
+
+### 4. Implementa una política de "cooldown" para paquetes nuevos
+
+Rechaza automáticamente paquetes publicados en los últimos 3 días antes de permitirlos en tu pipeline. Esto da tiempo a la comunidad de seguridad para analizar nuevas versiones.
+
+### 5. Verifica provenance de paquetes críticos
+
+Las versiones legítimas de Axios incluyen metadatos de provenance OIDC y attestations SLSA vinculando el paquete npm a un run específico de GitHub Actions. Las versiones maliciosas **no tenían nada de esto** — fueron publicadas directamente, sin trail verificable de build.
+
+```bash
+# Verifica provenance de un paquete
+npm audit signatures
+npm info axios dist.integrity
+```
+
+### 6. Audita tokens de npm regularmente
+
+```bash
+# Lista todos los tokens de acceso activos
+npm token list
+
+# Elimina tokens de larga duración innecesarios
+npm token revoke <token-id>
+
+# Usa OIDC Trusted Publishing + NO almacenes NPM_TOKEN en tus secrets
+```
+
+---
+
+## El contexto más amplio: la cadena de suministro de software sigue siendo el eslabón débil
+
+Este ataque sigue el mismo patrón que casos previos: `event-stream` (2018), `ua-parser-js` (2021), `colors` y `faker` (2022). La diferencia esta vez es la escala y la sofisticación del actor — un grupo de amenaza persistente avanzada con nexo estatal que llevó a cabo el ataque con 18 horas de preparación previa.
+
+El mantenedor del proyecto tenía 2FA habilitado en todo. La vulnerabilidad no fue un error humano — fue estructural: tokens de larga duración que coexisten con OIDC publishing en npm, creando una superficie de ataque que el sistema permite sin advertencia.
+
+La conclusión que el SANS Institute resumió bien: _"El ataque no fue a tu aplicación. Fue al vendor de tu vendor de tu vendor. Esto es lo que eso parece en práctica."_
+
+---
+
+## Conclusión
+
+Si usas Node.js, esto te afecta. La pregunta no es si Axios está en tu stack — con 100 millones de descargas semanales como dependencia transitiva en miles de paquetes, la probabilidad es muy alta. La pregunta es si lo instalaste durante las tres horas críticas del 31 de marzo.
+
+Audita ahora, rota credenciales si encontraste las versiones comprometidas y adopta las prácticas de fijado de dependencias que habrían protegido cualquier proyecto afectado.
+
+---
+
+## Fuentes y recursos
+
+- <a
+    href="https://cloud.google.com/blog/topics/threat-intelligence/north-korea-threat-actor-targets-axios-npm-package"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    Google Threat Intelligence Group — Atribución a UNC1069
+  </a>
+- <a
+    href="https://www.microsoft.com/en-us/security/blog/2026/04/01/mitigating-the-axios-npm-supply-chain-compromise"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    Microsoft Security Blog — Mitigación y análisis de Sapphire Sleet
+  </a>
+- <a
+    href="https://www.elastic.co/security-labs/axios-one-rat-to-rule-them-all"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    Elastic Security Labs — Análisis técnico del RAT
+  </a>
+- <a
+    href="https://www.huntress.com/blog/supply-chain-compromise-axios-npm-package"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    Huntress — Timeline detallado y IOCs
+  </a>
+- <a
+    href="https://thehackernews.com/2026/03/axios-supply-chain-attack-pushes-cross.html"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    The Hacker News — Cobertura del ataque
+  </a>
+- <a
+    href="https://www.sans.org/blog/axios-npm-supply-chain-compromise-malicious-packages-remote-access-trojan"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    SANS Institute — Análisis y contexto
+  </a>
+- <a
+    href="https://socradar.io/blog/axios-npm-supply-chain-attack-2026-ciso-guide/"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    SOCRadar — Guía de remediación y IOCs completos
+  </a>
