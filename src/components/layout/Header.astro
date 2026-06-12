@@ -17,29 +17,31 @@ const currentPath = Astro.url.pathname;
 
 <header
   id="site-header"
-  class="fixed left-0 right-0 top-0 z-50 border-b border-border/40 dark:bg-bg-primary/95 bg-white dark:bg-bg-primary md:dark:bg-transparent backdrop-blur-0 md:dark:backdrop-blur transition-transform duration-300 will-change-transform"
+  class="fixed left-0 right-0 top-0 z-50 px-3 pt-3 transition-transform duration-300 will-change-transform sm:px-4 sm:pt-4"
 >
-  <nav class="container-custom flex h-16 items-center justify-between">
+  <nav
+    class="surface-bg mx-auto flex h-14 max-w-5xl items-center justify-between rounded-2xl border border-[color:var(--surface-border)] px-3 shadow-[var(--shadow-card)] backdrop-blur-xl sm:px-4"
+  >
     <a
       href="/"
-      class="inline-flex items-center gap-2 text-[30px] font-bold text-text-primary"
+      class="inline-flex items-center gap-2 font-bold text-text-primary"
     >
       <Image
         src={LogoPage}
         alt="lalonso"
         width={200}
         height={50}
-        class="h-8 w-auto"
+        class="h-7 w-auto"
       />
-      <span class="hidden lg:block text-[25px] tracking-wide"> lalonso </span>
+      <span class="hidden text-lg tracking-tight lg:block">lalonso<span class="gradient-text">.dev</span></span>
     </a>
 
-    <div class="hidden items-center gap-1 md:flex">
+    <div class="hidden items-center gap-0.5 lg:flex">
       {
         navLinks.map((link) => (
           <a
             href={link.href}
-            class={`nav-link text-[15px] ${currentPath === link.href || (link.href !== "/" && currentPath.startsWith(link.href)) ? "nav-link-active" : ""}`}
+            class={`nav-link text-sm ${currentPath === link.href || (link.href !== "/" && currentPath.startsWith(link.href)) ? "nav-link-active" : ""}`}
           >
             {link.label}
           </a>
@@ -47,11 +49,11 @@ const currentPath = Astro.url.pathname;
       }
     </div>
 
-    <div class="hidden items-center gap-2 md:flex">
+    <div class="hidden items-center gap-2 lg:flex">
       <ThemeToggle />
       <a
         href="/cv-Lucas-A-A-c-2026.pdf"
-        class="rounded-lg bg-accent-primary px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110"
+        class="rounded-xl px-4 py-2 text-sm font-semibold text-white shadow-[0_10px_22px_-10px_var(--glow-primary)] transition hover:-translate-y-px hover:shadow-[0_14px_28px_-10px_var(--glow-primary)] [background-image:linear-gradient(110deg,var(--accent-primary),var(--accent-secondary))]"
         target="_blank"
         rel="noopener noreferrer"
       >
@@ -59,7 +61,7 @@ const currentPath = Astro.url.pathname;
       </a>
     </div>
 
-    <div class="flex items-center gap-2 md:hidden">
+    <div class="flex items-center gap-2 lg:hidden">
       <ThemeToggle />
       <button
         id="mobile-menu-btn"
@@ -97,8 +99,11 @@ const currentPath = Astro.url.pathname;
     </div>
   </nav>
 
-  <div id="mobile-menu" class="hidden bg-bg-primary/95 px-4 py-4 md:hidden">
-    <div class="container-custom space-y-2">
+  <div
+    id="mobile-menu"
+    class="surface-bg mx-auto mt-2 hidden max-w-5xl rounded-2xl border border-[color:var(--surface-border)] p-3 shadow-[var(--shadow-card)] backdrop-blur-xl lg:hidden"
+  >
+    <div class="space-y-1">
       {
         navLinks.map((link) => (
           <a
@@ -112,7 +117,7 @@ const currentPath = Astro.url.pathname;
 
       <a
         href="/cv-Lucas-A-A-c-2026.pdf"
-        class="mt-2 block rounded-xl bg-accent-primary px-4 py-3 text-center text-sm font-semibold text-white"
+        class="mt-2 block rounded-xl px-4 py-3 text-center text-sm font-semibold text-white [background-image:linear-gradient(110deg,var(--accent-primary),var(--accent-secondary))]"
         target="_blank"
         rel="noopener noreferrer"
       >
@@ -173,15 +178,9 @@ const currentPath = Astro.url.pathname;
 
 <style>
   #site-header.headroom--unpinned {
-    transform: translateY(-100%);
-  }
-  #site-header.headroom--top {
-    border-bottom: 0px;
+    transform: translateY(-120%);
   }
   #site-header.headroom--pinned {
     transform: translateY(0);
-  }
-  #site-header.headroom--not-top {
-    box-shadow: 0 8px 26px -22px rgba(15, 23, 42, 0.45);
   }
 </style>

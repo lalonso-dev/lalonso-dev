@@ -6,58 +6,243 @@ const stats = [
   { value: "99%", label: "Satisfacción de clientes" },
   { value: "5+", label: "Años de experiencia" },
 ];
+
+const socials = [
+  {
+    label: "GitHub",
+    href: "https://github.com/lalonso-dev",
+    icon: '<path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.55v-2.15c-3.2.7-3.87-1.36-3.87-1.36-.52-1.33-1.28-1.68-1.28-1.68-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.03 1.76 2.7 1.25 3.35.96.1-.74.4-1.25.73-1.54-2.55-.29-5.23-1.28-5.23-5.68 0-1.26.45-2.28 1.18-3.09-.12-.29-.51-1.46.11-3.05 0 0 .96-.31 3.15 1.18a10.9 10.9 0 0 1 5.74 0c2.18-1.49 3.14-1.18 3.14-1.18.63 1.59.24 2.76.12 3.05.74.81 1.18 1.83 1.18 3.09 0 4.41-2.69 5.38-5.25 5.67.41.35.78 1.05.78 2.12v3.14c0 .3.2.66.8.55A11.51 11.51 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5z"/>',
+  },
+  {
+    label: "LinkedIn",
+    href: "https://www.linkedin.com/in/lucasalbertoalonso/",
+    icon: '<path d="M20.45 20.45h-3.55v-5.57c0-1.33-.03-3.04-1.85-3.04-1.86 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12zM7.12 20.45H3.56V9h3.56v11.45z"/>',
+  },
+];
+
+// Glifos de código flotando en los bordes — nunca detrás del headline
+const glyphs = [
+  { text: "</>", top: "14%", left: "10%", dur: "9s", delay: "0s", size: "text-2xl", mobile: true },
+  { text: "{ }", top: "26%", left: "86%", dur: "12s", delay: "1.2s", size: "text-xl", mobile: true },
+  { text: "=>", top: "58%", left: "6%", dur: "10s", delay: "2s", size: "text-lg", mobile: false },
+  { text: "const", top: "10%", left: "70%", dur: "11s", delay: "0.6s", size: "text-sm", mobile: false },
+  { text: "()", top: "68%", left: "90%", dur: "9.5s", delay: "1.8s", size: "text-xl", mobile: false },
+  { text: "npm run dev", top: "44%", left: "88%", dur: "13s", delay: "0.3s", size: "text-xs", mobile: false },
+  { text: "git push", top: "50%", left: "4%", dur: "12.5s", delay: "2.6s", size: "text-xs", mobile: true },
+];
 ---
 
-<section class="section-padding pt-28 sm:pt-32">
-  <div class="container-custom">
+<section class="relative overflow-hidden section-padding pt-32 sm:pt-36">
+  <!-- Capa 1: grid técnico con máscara radial -->
+  <div class="hero-grid" aria-hidden="true"></div>
+
+  <!-- Capa 2: glow ambiental + grano -->
+  <div class="mesh-bg" aria-hidden="true"></div>
+  <div class="grain-overlay" aria-hidden="true"></div>
+
+  <!-- Capa 3: beams de luz cayendo por el grid -->
+  <div class="pointer-events-none absolute inset-0" aria-hidden="true">
+    <span class="hero-beam" style="left: 16%; --beam-delay: 0s; --beam-dur: 7s;"></span>
+    <span class="hero-beam hidden sm:block" style="left: 38%; --beam-delay: 3.2s; --beam-dur: 9s;"></span>
+    <span class="hero-beam" style="left: 82%; --beam-delay: 1.6s; --beam-dur: 8s;"></span>
+  </div>
+
+  <!-- Capa 4: glifos de código flotando -->
+  <div class="pointer-events-none absolute inset-0" aria-hidden="true">
+    {
+      glyphs.map((glyph) => (
+        <span
+          class={`code-glyph ${glyph.size} ${glyph.mobile ? "" : "hidden md:block"}`}
+          style={`top: ${glyph.top}; left: ${glyph.left}; --glyph-dur: ${glyph.dur}; --glyph-delay: ${glyph.delay};`}
+        >
+          {glyph.text}
+        </span>
+      ))
+    }
+  </div>
+
+  <div class="container-custom relative z-10">
     <div class="mx-auto max-w-4xl text-center">
-      <div
-        class="mb-6 inline-flex items-center gap-2 rounded-full border border-accent-primary/20 bg-accent-primary/5 px-4 py-2"
+      <h1
+        class="hero-name font-heading font-extrabold uppercase leading-[0.88] tracking-tight"
         data-reveal
       >
-        <span class="pulse-dot"></span>
-        <span
-          class="text-xs font-semibold uppercase tracking-[0.18em] text-accent-primary"
-        >
-          Construyendo nuevas ideas 🚀
-        </span>
-      </div>
-      <h1
-        class="mx-auto max-w-3xl font-heading text-5xl font-extrabold leading-[0.95] text-slate-900 sm:text-6xl lg:text-7xl dark:text-white"
+        <span class="hero-name-outline block">Lucas</span>
+        <span class="gradient-text block">Alonso</span>
+      </h1>
+      <p
+        class="mt-6 font-heading text-2xl font-bold tracking-tight text-text-primary sm:text-3xl"
         data-reveal
         data-reveal-delay="80"
       >
-        Sistemas web escalables y sitios de <span class="gradient-text"
-          >alto rendimiento</span
-        >
-      </h1>
+        Desarrollador Full-Stack Senior
+      </p>
       <p
-        class="mx-auto mt-6 max-w-2xl text-base text-text-secondary sm:text-lg"
+        class="mx-auto mt-4 max-w-md text-base text-text-secondary sm:text-lg"
         data-reveal
         data-reveal-delay="140"
       >
-        Desarrollador Full Stack Senior especializado en arquitectura web
-        moderna, ingeniería de producto y optimización de rendimiento.
+        Construyo productos web rápidos, sólidos y hechos para crecer.
       </p>
-      <div class="mt-9 flex flex-wrap justify-center gap-3" data-reveal data-reveal-delay="200">
-        <Button text="Ver proyectos" href="/proyectos" size="lg" />
-        <Button text="Contactar" href="/contacto" variant="outline" size="lg" />
+      <div
+        class="mt-9 flex flex-col items-center gap-3 sm:flex-row sm:flex-wrap sm:justify-center"
+        data-reveal
+        data-reveal-delay="200"
+      >
+        <Button text="Ver proyectos" href="/proyectos" size="lg" class="w-full sm:w-auto" />
+        <Button text="Contactar" href="/contacto" variant="outline" size="lg" class="w-full sm:w-auto" />
+      </div>
+      <div
+        class="mt-7 flex items-center justify-center gap-2"
+        data-reveal
+        data-reveal-delay="260"
+      >
+        {
+          socials.map((social) => (
+            <a
+              href={social.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={social.label}
+              class="surface-bg inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border text-text-secondary backdrop-blur transition hover:-translate-y-0.5 hover:border-accent-primary/40 hover:text-accent-primary"
+            >
+              <svg class="h-[18px] w-[18px]" fill="currentColor" viewBox="0 0 24 24" set:html={social.icon} />
+            </a>
+          ))
+        }
       </div>
     </div>
 
-    <div class="mt-14 grid gap-4 sm:grid-cols-3">
-      {
-        stats.map((stat, index) => (
-          <div class="glass-card p-5 text-center" data-reveal data-reveal-delay={String(160 + index * 70)}>
-            <p class="font-heading text-3xl font-bold text-text-primary">
-              {stat.value}
-            </p>
-            <p class="mt-1 text-xs uppercase tracking-[0.16em] text-text-secondary">
-              {stat.label}
-            </p>
-          </div>
-        ))
-      }
+    <div class="mx-auto mt-14 max-w-2xl lg:mt-16" data-reveal data-reveal-delay="300">
+      <div class="glass-card grid grid-cols-3 divide-x divide-border/60 overflow-hidden">
+        {
+          stats.map((stat) => (
+            <div class="px-2 py-6 text-center sm:px-6 sm:py-7">
+              <p class="font-heading text-2xl font-bold gradient-text sm:text-4xl">
+                {stat.value}
+              </p>
+              <p class="mx-auto mt-1.5 max-w-[10ch] text-[10px] uppercase leading-tight tracking-[0.12em] text-text-secondary sm:mt-2 sm:max-w-none sm:text-[11px] sm:tracking-[0.16em]">
+                {stat.label}
+              </p>
+            </div>
+          ))
+        }
+      </div>
     </div>
   </div>
 </section>
+
+<style>
+  /* Nombre monumental: escala fluida que llena el ancho disponible */
+  .hero-name {
+    font-size: clamp(4.5rem, 16vw, 11rem);
+  }
+
+  /* "LUCAS" en outline: solo contorno, relleno transparente */
+  .hero-name-outline {
+    color: transparent;
+    -webkit-text-stroke: 2px var(--text-primary);
+    text-stroke: 2px var(--text-primary);
+  }
+
+  @media (max-width: 640px) {
+    .hero-name-outline {
+      -webkit-text-stroke-width: 1.5px;
+      text-stroke-width: 1.5px;
+    }
+  }
+
+  /* Grid técnico tipo blueprint, desvanecido radialmente hacia los bordes */
+  .hero-grid {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+    background-size: 52px 52px;
+    -webkit-mask-image: radial-gradient(
+      ellipse 90% 75% at 50% 38%,
+      black 25%,
+      transparent 78%
+    );
+    mask-image: radial-gradient(
+      ellipse 90% 75% at 50% 38%,
+      black 25%,
+      transparent 78%
+    );
+  }
+
+  /* Beam: segmento de luz que cae por una línea vertical del grid */
+  .hero-beam {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    overflow: hidden;
+  }
+
+  .hero-beam::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 32%;
+    width: 100%;
+    background: linear-gradient(
+      to bottom,
+      transparent,
+      var(--accent-primary) 55%,
+      var(--accent-tertiary)
+    );
+    opacity: 0.5;
+    transform: translateY(-120%);
+    animation: beam-fall var(--beam-dur, 8s) linear infinite;
+    animation-delay: var(--beam-delay, 0s);
+  }
+
+  @keyframes beam-fall {
+    to {
+      transform: translateY(420%);
+    }
+  }
+
+  /* Glifos de código flotando con deriva suave */
+  .code-glyph {
+    position: absolute;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-weight: 500;
+    color: var(--accent-primary);
+    opacity: calc(var(--glyph-opacity) * 0.6);
+    animation: glyph-drift var(--glyph-dur, 10s) ease-in-out infinite;
+    animation-delay: var(--glyph-delay, 0s);
+    will-change: transform;
+    user-select: none;
+  }
+
+  .code-glyph:nth-child(even) {
+    color: var(--accent-secondary);
+  }
+
+  @keyframes glyph-drift {
+    0%,
+    100% {
+      transform: translateY(0) rotate(0deg);
+      opacity: calc(var(--glyph-opacity) * 0.45);
+    }
+    50% {
+      transform: translateY(-16px) rotate(2deg);
+      opacity: var(--glyph-opacity);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero-beam::after,
+    .code-glyph {
+      animation: none;
+    }
+    .hero-beam::after {
+      display: none;
+    }
+  }
+</style>

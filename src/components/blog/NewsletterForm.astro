@@ -15,9 +15,7 @@ const {
 const newsletterRedirect = `https://lalonso.dev/newsletter-success?source=${encodeURIComponent(source)}`;
 ---
 
-<section
-  class={`rounded-2xl border border-border bg-bg-secondary p-5 sm:p-6 ${className}`}
->
+<section class={`glass-card p-5 sm:p-6 ${className}`}>
   <h3 class="font-heading text-xl font-bold text-text-primary">{title}</h3>
   <p class="mt-2 text-sm text-text-secondary">{description}</p>
 
@@ -64,7 +62,7 @@ const newsletterRedirect = `https://lalonso.dev/newsletter-success?source=${enco
 
     <button
       type="submit"
-      class="inline-flex w-full items-center justify-center rounded-xl border border-accent-primary/40 bg-accent-primary/10 px-4 py-2.5 text-sm font-semibold text-text-primary transition hover:border-accent-primary hover:bg-accent-primary/20"
+      class="inline-flex w-full items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_22px_-10px_var(--glow-primary)] transition hover:-translate-y-px hover:shadow-[0_14px_28px_-10px_var(--glow-primary)] [background-image:linear-gradient(110deg,var(--accent-primary),var(--accent-secondary))]"
     >
       Quiero suscribirme
     </button>

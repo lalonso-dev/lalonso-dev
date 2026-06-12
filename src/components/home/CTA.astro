@@ -4,21 +4,30 @@ import Button from '@/components/ui/Button.astro';
 
 <section class="section-padding">
   <div class="container-custom">
-    <div class="p-10 text-center sm:p-12">
-      <h2
-        class="mx-auto max-w-2xl font-heading text-4xl font-extrabold leading-tight sm:text-6xl"
-      >
-        Construyamos algo increíble juntos.
-      </h2>
-      <div class="mt-8 flex flex-wrap justify-center gap-3">
-        <Button text="Contactar" href="/contacto" size="lg" />
-        <Button
-          text="Descargar CV"
-          href="/cv-Lucas-A-A-c-2026.pdf"
-          variant="outline"
-          size="lg"
-          target="_blank"
-        />
+    <div
+      class="glass-card relative overflow-hidden p-10 text-center sm:p-16"
+      data-reveal
+    >
+      <div class="mesh-bg" aria-hidden="true"></div>
+      <div class="relative z-10">
+        <p class="mb-4 text-xs font-semibold uppercase tracking-[0.2em] text-accent-primary">
+          ¿Tienes un proyecto en mente?
+        </p>
+        <h2
+          class="mx-auto max-w-2xl font-heading text-4xl font-extrabold leading-[1.05] sm:text-6xl"
+        >
+          Construyamos algo <span class="gradient-text">increíble</span> juntos.
+        </h2>
+        <div class="mt-9 flex flex-wrap justify-center gap-3">
+          <Button text="Contactar" href="/contacto" size="lg" />
+          <Button
+            text="Descargar CV"
+            href="/cv-Lucas-A-A-c-2026.pdf"
+            variant="outline"
+            size="lg"
+            target="_blank"
+          />
+        </div>
       </div>
     </div>
   </div>

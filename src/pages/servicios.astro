@@ -176,29 +176,51 @@ const faqs = [
   description="Servicios de desarrollo web: frontend, backend, Craft CMS, DevOps y consultoría técnica."
 >
   <!-- Hero -->
-  <section class="relative pt-32 pb-16 overflow-hidden">
-    <div class="relative section-padding container-custom text-center">
-      <h1 class="font-heading text-5xl sm:text-6xl font-bold mb-4">
-        ¿Cómo puedo ayudarte?
-      </h1>
-      <p class="text-xl text-text-secondary max-w-2xl mx-auto">
-        Ofrezco soluciones de desarrollo web completas, desde la idea inicial
-        hasta el lanzamiento y más allá.
+  <section class="relative overflow-hidden pt-32 sm:pt-36">
+    <div class="mesh-bg" aria-hidden="true"></div>
+    <div class="grain-overlay" aria-hidden="true"></div>
+    <div class="container-custom relative z-10 pb-14 text-center" data-reveal>
+      <p
+        class="mb-3 flex items-center justify-center gap-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-accent-primary"
+      >
+        <span
+          class="h-px w-6 bg-gradient-to-r from-transparent to-accent-primary/60"
+          aria-hidden="true"></span>
+        Servicios
+        <span
+          class="h-px w-6 bg-gradient-to-l from-transparent to-accent-primary/60"
+          aria-hidden="true"></span>
       </p>
-      <div class="pt-3 mt-2">
+      <h1
+        class="font-heading text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-6xl"
+      >
+        ¿Cómo puedo <span class="gradient-text">ayudarte</span>?
+      </h1>
+      <p class="mx-auto mt-4 max-w-xl text-text-secondary sm:text-lg">
+        Soluciones de desarrollo web completas, desde la idea inicial hasta el
+        lanzamiento y más allá.
+      </p>
+      <div class="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:flex-wrap sm:justify-center">
         <Button
           text="WhatsApp"
           href="https://wa.me/524434384404?text=Hola%20quiero%20información%20sobre%20sus%20servicios"
           variant="primary"
           size="lg"
+          class="w-full sm:w-auto"
         />
-        <Button text="Contacto" href="/contacto" variant="outline" size="lg" />
+        <Button
+          text="Contacto"
+          href="/contacto"
+          variant="outline"
+          size="lg"
+          class="w-full sm:w-auto"
+        />
       </div>
     </div>
   </section>
 
   <!-- Intro -->
-  <section class="section-padding bg-bg-secondary">
+  <section class="section-padding section-alt">
     <div class="container-custom max-w-3xl text-center">
       <h2 class="font-heading text-2xl sm:text-3xl font-bold mb-4">
         Mis Servicios
@@ -213,16 +235,14 @@ const faqs = [
   </section>
 
   <!-- Services List -->
-  <section class="section-padding bg-bg-secondary">
+  <section class="section-padding section-alt">
     <div class="container-custom">
       <div class="space-y-16">
         {
           services.map((service, i) => (
-            <div
-              class={`grid lg:grid-cols-2 gap-12 items-center ${i % 2 !== 0 ? "lg:flex-row-reverse" : ""}`}
-            >
+            <div class="grid items-center gap-12 lg:grid-cols-2">
               <div class={i % 2 !== 0 ? "lg:order-2" : ""}>
-                <div class="inline-flex p-3 rounded-xl bg-accent-primary/10 text-accent-primary mb-4">
+                <div class="mb-4 inline-flex rounded-xl bg-accent-primary/10 p-3 text-accent-primary ring-1 ring-accent-primary/20">
                   <svg
                     class="w-7 h-7"
                     fill="none"
@@ -283,15 +303,21 @@ const faqs = [
         title="Mi Proceso de Trabajo"
         align="center"
       />
-      <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
+      <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
         {
-          process.map((step) => (
-            <div class="text-center">
-              <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-accent-primary/10 text-accent-primary font-heading text-5xl font-bold mb-4">
+          process.map((step, index) => (
+            <div
+              class="text-center"
+              data-reveal
+              data-reveal-delay={String(index * 80)}
+            >
+              <p class="gradient-text font-heading text-5xl font-extrabold leading-none">
                 {step.step}
-              </div>
-              <h3 class="font-heading text-lg font-bold mb-2">{step.title}</h3>
-              <p class="text-text-secondary text-sm">{step.description}</p>
+              </p>
+              <h3 class="mt-3 font-heading text-lg font-bold">{step.title}</h3>
+              <p class="mt-2 text-sm text-text-secondary">
+                {step.description}
+              </p>
             </div>
           ))
         }
@@ -300,7 +326,7 @@ const faqs = [
   </section>
 
   <!-- Why Me -->
-  <section class="section-padding bg-bg-secondary">
+  <section class="section-padding section-alt">
     <div class="container-custom">
       <SectionTitle
         label="DIFERENCIADOR"
@@ -310,7 +336,7 @@ const faqs = [
       <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {
           reasons.map((reason) => (
-            <div class="glass-card p-6 flex items-start gap-4">
+            <div class="glass-card glass-card-hover p-6 flex items-start gap-4">
               <div class="p-2 rounded-lg bg-accent-primary/10 text-accent-primary flex-shrink-0">
                 <svg
                   class="w-5 h-5"
@@ -369,22 +395,36 @@ const faqs = [
   </section>
 
   <!-- CTA -->
-  <section class="section-padding bg-bg-secondary">
-    <div class="container-custom text-center">
-      <h2 class="font-heading text-3xl sm:text-4xl font-bold mb-6">
-        ¿Listo para empezar?
-      </h2>
-      <p class="text-text-secondary text-lg max-w-xl mx-auto mb-8">
-        Hablemos sobre tu proyecto. Elige la forma de contacto que prefieras.
-      </p>
-      <div class="flex flex-wrap justify-center gap-4">
-        <Button
-          text="WhatsApp"
-          href="https://wa.me/524434384404?text=Hola%20quiero%20información%20sobre%20sus%20servicios"
-          variant="primary"
-          size="lg"
-        />
-        <Button text="Contacto" href="/contacto" variant="outline" size="lg" />
+  <section class="section-padding">
+    <div class="container-custom">
+      <div
+        class="glass-card relative overflow-hidden p-10 text-center sm:p-14"
+        data-reveal
+      >
+        <div class="mesh-bg" aria-hidden="true"></div>
+        <div class="relative z-10">
+          <h2 class="font-heading text-3xl font-extrabold sm:text-5xl">
+            ¿Listo para <span class="gradient-text">empezar</span>?
+          </h2>
+          <p class="mx-auto mt-4 max-w-xl text-lg text-text-secondary">
+            Hablemos sobre tu proyecto. Elige la forma de contacto que
+            prefieras.
+          </p>
+          <div class="mt-8 flex flex-wrap justify-center gap-3">
+            <Button
+              text="WhatsApp"
+              href="https://wa.me/524434384404?text=Hola%20quiero%20información%20sobre%20sus%20servicios"
+              variant="primary"
+              size="lg"
+            />
+            <Button
+              text="Contacto"
+              href="/contacto"
+              variant="outline"
+              size="lg"
+            />
+          </div>
+        </div>
       </div>
     </div>
   </section>

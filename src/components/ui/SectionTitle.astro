@@ -12,9 +12,14 @@ const isCenter = align === 'center';
 
 <div class={`mb-10 ${isCenter ? 'text-center' : 'text-left'}`} data-reveal>
   {label && (
-    <p class="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-accent-primary">{label}</p>
+    <p class={`mb-3 flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-accent-primary ${isCenter ? 'justify-center' : ''}`}>
+      {isCenter && <span class="h-px w-6 bg-gradient-to-r from-transparent to-accent-primary/60" aria-hidden="true"></span>}
+      {!isCenter && <span class="h-px w-6 bg-gradient-to-r from-accent-primary/60 to-accent-primary/0 rotate-180" aria-hidden="true"></span>}
+      {label}
+      {isCenter && <span class="h-px w-6 bg-gradient-to-l from-transparent to-accent-primary/60" aria-hidden="true"></span>}
+    </p>
   )}
-  <h2 class="mb-3 font-heading text-3xl font-bold leading-tight sm:text-4xl">{title}</h2>
+  <h2 class="mb-3 font-heading text-3xl font-bold leading-tight tracking-tight sm:text-[2.5rem]">{title}</h2>
   {description && (
     <p class={`text-sm text-text-secondary sm:text-base ${isCenter ? 'mx-auto max-w-2xl' : 'max-w-2xl'}`}>
       {description}

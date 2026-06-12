@@ -10,17 +10,17 @@ const latestPosts = (await getCollection("blog", ({ data }) => !data.draft))
 
 {
   latestPosts.length > 0 && (
-    <section class="section-padding bg-bg-secondary">
+    <section class="section-padding">
       <div class="container-custom">
         <div class="flex items-end justify-between mb-12">
           <SectionTitle label="BLOG" title="Últimos Artículos" />
           <a
             href="/blog"
-            class="hidden sm:inline-flex items-center gap-2 text-accent-primary hover:underline font-medium"
+            class="group hidden sm:inline-flex items-center gap-2 text-accent-primary font-medium"
           >
             Ver todos
             <svg
-              class="w-4 h-4"
+              class="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -35,9 +35,11 @@ const latestPosts = (await getCollection("blog", ({ data }) => !data.draft))
           </a>
         </div>
 
-        <div class="grid md:grid-cols-3 gap-8">
-          {latestPosts.map((post) => (
-            <PostCard post={post} />
+        <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {latestPosts.map((post, index) => (
+            <div class={index === 2 ? "sm:max-lg:hidden" : ""}>
+              <PostCard post={post} />
+            </div>
           ))}
         </div>
       </div>

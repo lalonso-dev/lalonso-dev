@@ -20,13 +20,13 @@ const {
 } = Astro.props;
 
 const baseClasses =
-  "inline-flex items-center justify-center gap-2 rounded-lg font-semibold tracking-tight transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/50";
+  "group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-xl font-semibold tracking-tight transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary";
 
 const variants: Record<string, string> = {
   primary:
-    "bg-accent-primary text-white shadow-[0_10px_20px_-12px_rgba(47,67,255,0.9)] hover:brightness-110",
+    "text-white shadow-[0_14px_30px_-12px_var(--glow-primary)] [background-image:linear-gradient(110deg,var(--accent-primary),var(--accent-secondary))] hover:shadow-[0_18px_40px_-12px_var(--glow-primary)] hover:-translate-y-0.5",
   outline:
-    "border border-border bg-transparent text-text-primary hover:border-accent-primary/50 hover:[background-color:rgb(47_67_255_/_0.08)]",
+    "surface-bg border border-border text-text-primary backdrop-blur hover:-translate-y-0.5 hover:border-accent-primary/50 hover:[background-color:rgb(99_102_241_/_0.08)]",
   ghost: "text-text-secondary hover:bg-bg-tertiary hover:text-text-primary",
 };
 

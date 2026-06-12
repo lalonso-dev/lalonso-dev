@@ -132,23 +132,33 @@ const education = [
   title="Sobre Mí | lalonso.dev"
   description="Conoce mi historia, experiencia profesional y las tecnologías con las que trabajo."
 >
-  <section class="relative pt-32 pb-0 overflow-hidden">
-    <div
-      class="absolute inset-0 bg-gradient-to-b from-accent-primary/5 to-transparent"
-    >
-    </div>
-    <div
-      class="relative section-padding pb-[3rem] container-custom text-center"
-    >
-      <h1 class="font-heading text-5xl sm:text-7xl font-bold mb-4">Sobre Mí</h1>
-      <p class="text-xl text-text-secondary max-w-2xl mx-auto">
-        La persona detrás del código — mi historia, motivación y enfoque
-        profesional.
+  <section class="relative overflow-hidden pt-32 sm:pt-36">
+    <div class="mesh-bg" aria-hidden="true"></div>
+    <div class="grain-overlay" aria-hidden="true"></div>
+    <div class="container-custom relative z-10 pb-12 text-center" data-reveal>
+      <p
+        class="mb-3 flex items-center justify-center gap-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-accent-primary"
+      >
+        <span
+          class="h-px w-6 bg-gradient-to-r from-transparent to-accent-primary/60"
+          aria-hidden="true"></span>
+        Sobre mí
+        <span
+          class="h-px w-6 bg-gradient-to-l from-transparent to-accent-primary/60"
+          aria-hidden="true"></span>
+      </p>
+      <h1
+        class="font-heading text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-6xl"
+      >
+        La persona detrás del <span class="gradient-text">código</span>
+      </h1>
+      <p class="mx-auto mt-4 max-w-xl text-text-secondary sm:text-lg">
+        Mi historia, motivación y enfoque profesional.
       </p>
     </div>
   </section>
 
-  <section class="section-padding pt-[2.5rem]">
+  <section class="section-padding overflow-hidden pt-[2.5rem]">
     <div class="container-custom">
       <div class="grid lg:grid-cols-2 gap-16 items-center">
         <div>
@@ -175,39 +185,46 @@ const education = [
             </p>
           </div>
         </div>
-        <div class="relative">
-          <div class="aspect-square rounded-2xl overflow-hidden">
+        <div class="relative" data-reveal="right">
+          <div
+            class="absolute inset-0 -z-10 scale-110 bg-[radial-gradient(circle_at_60%_40%,var(--glow-primary),transparent_70%)] blur-2xl"
+            aria-hidden="true"
+          >
+          </div>
+          <div
+            class="glass-card aspect-square overflow-hidden !rounded-3xl p-0"
+          >
             <Image
               src={Photo}
               alt="Lucas Alberto"
               width={800}
               height={800}
-              class="w-full h-full object-cover"
+              class="h-full w-full object-cover"
             />
-          </div>
-          <div
-            class="absolute -bottom-4 -right-4 w-32 h-32 bg-accent-primary/10 rounded-2xl -z-10"
-          >
           </div>
         </div>
       </div>
     </div>
   </section>
 
-  <section class="section-padding bg-bg-secondary">
+  <section class="section-padding section-alt">
     <div class="container-custom">
       <SectionTitle
         label="MI ENFOQUE"
         title="Principios que guían mi trabajo"
         align="center"
       />
-      <div class="grid md:grid-cols-3 gap-8">
+      <div class="grid md:grid-cols-3 gap-6">
         {
-          approach.map((item) => (
-            <div class="glass-card p-8 text-center">
-              <div class="inline-flex p-3 rounded-xl bg-accent-primary/10 text-accent-primary mb-0">
+          approach.map((item, index) => (
+            <div
+              class="glass-card glass-card-hover p-8 text-center"
+              data-reveal
+              data-reveal-delay={String(index * 80)}
+            >
+              <div class="mb-4 inline-flex rounded-xl bg-accent-primary/10 p-3 text-accent-primary ring-1 ring-accent-primary/20">
                 <svg
-                  class="w-10 h-10"
+                  class="h-8 w-8"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -230,7 +247,7 @@ const education = [
     </div>
   </section>
 
-  <section class="section-padding bg-bg-secondary">
+  <section class="section-padding section-alt">
     <div class="container-custom">
       <SectionTitle
         label="TECNOLOGÍAS"
@@ -240,7 +257,7 @@ const education = [
       <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {
           techStack.map((group) => (
-            <div class="glass-card p-6">
+            <div class="glass-card glass-card-hover p-6">
               <h3 class="font-heading text-lg font-bold mb-4">
                 {group.category}
               </h3>
@@ -256,29 +273,36 @@ const education = [
     </div>
   </section>
 
-  <section class="section-padding bg-bg-secondary pt-[0rem]">
+  <section class="section-padding section-alt pt-[0rem]">
     <div class="container-custom max-w-3xl text-center">
-      <SectionTitle label="" title="EDUCACIÓN" align="center" />
-      <p class="text-text-secondary text-lg leading-relaxed">
-        <strong> Nivel Superior </strong>
-        <br />
-        <strong> Ingeniería en informática </strong> | Ciudad Altamirano, Gro. | 2015-2019
-        Instituto Tecnológico de Ciudad Altamirano, Avenida Pungarabato Pte. S/N.
-      </p>
+      <SectionTitle
+        label="EDUCACIÓN"
+        title="Formación académica"
+        align="center"
+      />
+      <div class="glass-card p-6 sm:p-8">
+        <p class="font-heading text-xl font-bold">
+          Ingeniería en Informática
+        </p>
+        <p class="mt-2 text-text-secondary">
+          Instituto Tecnológico de Ciudad Altamirano — Ciudad Altamirano, Gro.
+        </p>
+        <p class="mt-1 text-sm font-medium text-accent-primary">2015 — 2019</p>
+      </div>
     </div>
   </section>
 
   <section class="section-padding">
     <div class="container-custom">
       <SectionTitle
-        label="EDUCACIÓN"
-        title="Formación y Certificaciones"
+        label="CERTIFICACIONES"
+        title="Formación continua"
         align="center"
       />
       <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {
           education.map((item) => (
-            <div class="glass-card p-6 text-center">
+            <div class="glass-card glass-card-hover p-6 text-center">
               <p class="text-sm text-accent-primary font-medium mb-2">
                 {item.year}
               </p>
@@ -291,7 +315,7 @@ const education = [
     </div>
   </section>
 
-  <section class="section-padding bg-bg-secondary">
+  <section class="section-padding section-alt">
     <div class="container-custom max-w-3xl text-center">
       <SectionTitle
         label="MÁS ALLÁ DEL CÓDIGO"

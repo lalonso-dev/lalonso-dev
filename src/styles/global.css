@@ -4,14 +4,28 @@
 
 @layer base {
   :root {
-    --bg-primary: #f5f6f8;
+    --bg-primary: #fbfbfd;
     --bg-secondary: #ffffff;
-    --bg-tertiary: #eef1f6;
-    --accent-primary: #2f43ff;
-    --accent-secondary: #1d4ed8;
-    --text-primary: #0f172a;
-    --text-secondary: #4b5563;
-    --border: #d8deea;
+    --bg-tertiary: #f1f3f9;
+    --bg-alt: #f4f6fb;
+    --accent-primary: #4f46e5;
+    --accent-secondary: #7c3aed;
+    --accent-tertiary: #06b6d4;
+    --text-primary: #0b1120;
+    --text-secondary: #51607a;
+    --border: #e4e8f1;
+
+    --surface: rgb(255 255 255 / 0.72);
+    --surface-border: rgb(15 23 42 / 0.07);
+    --surface-highlight: rgb(255 255 255 / 0.9);
+    --glow-primary: rgb(79 70 229 / 0.22);
+    --glow-secondary: rgb(124 58 237 / 0.18);
+    --grid-line: rgb(15 23 42 / 0.06);
+    --glyph-opacity: 0.35;
+    --shadow-card: 0 1px 2px rgb(15 23 42 / 0.04),
+      0 12px 32px -18px rgb(15 23 42 / 0.22);
+    --shadow-card-hover: 0 1px 2px rgb(15 23 42 / 0.05),
+      0 28px 56px -24px rgb(79 70 229 / 0.4);
 
     --code-bg: #f6f8fa;
     --code-border: #d0d7de;
@@ -21,14 +35,28 @@
   }
 
   .dark {
-    --bg-primary: #0a0f1e;
-    --bg-secondary: #111a2e;
-    --bg-tertiary: #1a2640;
-    --accent-primary: #3b82f6;
-    --accent-secondary: #22d3ee;
-    --text-primary: #f8fafc;
-    --text-secondary: #94a3b8;
-    --border: #2a3959;
+    --bg-primary: #070b16;
+    --bg-secondary: #0e1424;
+    --bg-tertiary: #161e33;
+    --bg-alt: #0b1120;
+    --accent-primary: #6366f1;
+    --accent-secondary: #a78bfa;
+    --accent-tertiary: #22d3ee;
+    --text-primary: #f7f9fc;
+    --text-secondary: #93a0b8;
+    --border: #232d45;
+
+    --surface: rgb(17 26 46 / 0.6);
+    --surface-border: rgb(255 255 255 / 0.08);
+    --surface-highlight: rgb(255 255 255 / 0.12);
+    --glow-primary: rgb(99 102 241 / 0.3);
+    --glow-secondary: rgb(167 139 250 / 0.22);
+    --grid-line: rgb(255 255 255 / 0.055);
+    --glyph-opacity: 0.4;
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3),
+      0 18px 40px -22px rgb(0 0 0 / 0.7);
+    --shadow-card-hover: 0 1px 2px rgb(0 0 0 / 0.35),
+      0 32px 64px -24px rgb(99 102 241 / 0.45);
 
     --code-bg: #272822;
     --code-border: #3f4439;
@@ -57,10 +85,11 @@
   h5,
   h6 {
     font-family: "Space Grotesk", "Inter", sans-serif;
+    letter-spacing: -0.02em;
   }
 
   ::selection {
-    background: rgb(47 67 255 / 0.18);
+    background: rgb(79 70 229 / 0.2);
     color: var(--text-primary);
   }
 }
@@ -105,11 +134,109 @@
   }
 
   .section-padding {
-    @apply py-14 sm:py-16 lg:py-20;
+    @apply py-14 sm:py-16 lg:py-24;
   }
 
+  /* Alternate section background — replaces hardcoded hex, works in both themes */
+  .section-alt {
+    background: var(--bg-alt);
+  }
+
+  /* Translucent surface fill — use instead of bg-bg-secondary/NN (las CSS vars del
+     config no soportan modificadores de opacidad de Tailwind y la clase se descarta) */
+  .surface-bg {
+    background-color: var(--surface);
+  }
+
+  /* Real glassmorphism: translucent surface + inner highlight + layered shadow */
   .glass-card {
-    @apply rounded-xl border border-border bg-bg-secondary;
+    position: relative;
+    border-radius: 1rem;
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
+    box-shadow: var(--shadow-card);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition:
+      transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 0.35s ease,
+      border-color 0.35s ease;
+  }
+
+  /* Subtle top highlight line for depth */
+  .glass-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+      180deg,
+      var(--surface-highlight),
+      transparent 40%
+    );
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    opacity: 0.7;
+  }
+
+  .glass-card-hover:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-card-hover);
+    border-color: rgb(99 102 241 / 0.35);
+  }
+
+  /* Ambient gradient mesh for hero / feature sections */
+  .mesh-bg {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .mesh-bg::before,
+  .mesh-bg::after {
+    content: "";
+    position: absolute;
+    border-radius: 9999px;
+    filter: blur(80px);
+    opacity: 0.55;
+  }
+
+  .mesh-bg::before {
+    width: 36rem;
+    height: 36rem;
+    top: -10rem;
+    left: -6rem;
+    background: radial-gradient(circle, var(--glow-primary), transparent 70%);
+    animation: float-slow 14s ease-in-out infinite;
+  }
+
+  .mesh-bg::after {
+    width: 30rem;
+    height: 30rem;
+    top: -4rem;
+    right: -8rem;
+    background: radial-gradient(circle, var(--glow-secondary), transparent 70%);
+    animation: float-slow 18s ease-in-out infinite reverse;
+  }
+
+  /* Fine grain texture overlay */
+  .grain-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.22;
+    z-index: 1;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' width='256' height='256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+    background-size: 256px 256px;
+    background-repeat: repeat;
+    mix-blend-mode: overlay;
   }
 
   .headline-gradient {
@@ -117,11 +244,46 @@
   }
 
   .gradient-text {
-    @apply bg-gradient-to-r from-accent-primary to-blue-500 bg-clip-text text-transparent;
+    background: linear-gradient(
+      110deg,
+      var(--accent-primary),
+      var(--accent-secondary) 55%,
+      var(--accent-tertiary)
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Animated gradient pill border — for badges */
+  .badge-glow {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .badge-glow::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+      110deg,
+      var(--accent-primary),
+      var(--accent-secondary),
+      var(--accent-tertiary)
+    );
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0.6;
+    z-index: -1;
   }
 
   .pulse-dot {
-    @apply relative inline-flex h-3 w-3;
+    @apply relative inline-flex h-2.5 w-2.5;
   }
 
   .pulse-dot::before {
@@ -131,7 +293,7 @@
 
   .pulse-dot::after {
     content: "";
-    @apply relative inline-flex h-3 w-3 rounded-full bg-emerald-500;
+    @apply relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500;
   }
 
   .nav-link {
@@ -140,11 +302,21 @@
 
   .nav-link-active {
     @apply text-accent-primary;
-    background-color: rgb(47 67 255 / 0.1);
+    background-color: rgb(99 102 241 / 0.1);
   }
 }
 
 @layer utilities {
+  @keyframes float-slow {
+    0%,
+    100% {
+      transform: translate(0, 0) scale(1);
+    }
+    50% {
+      transform: translate(2rem, 1.5rem) scale(1.08);
+    }
+  }
+
   [data-reveal] {
     opacity: 0;
     transform: translateY(18px);
@@ -166,6 +338,17 @@
   [data-reveal].is-revealed {
     opacity: 1;
     transform: translate(0, 0);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mesh-bg::before,
+    .mesh-bg::after {
+      animation: none;
+    }
+    [data-reveal] {
+      opacity: 1;
+      transform: none;
+    }
   }
 }
 
@@ -258,6 +441,6 @@ pre.astro-code span.line,
   color: var(--code-inline-fg);
   border-radius: 0.4rem;
   padding: 0.1rem 0.4rem;
-  word-break: break-all; /* agrega esto */
-  overflow-wrap: break-word; /* y esto */
+  word-break: break-all;
+  overflow-wrap: break-word;
 }

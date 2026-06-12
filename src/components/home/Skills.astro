@@ -68,7 +68,7 @@ const skillCategories = [
 ];
 ---
 
-<section class="section-padding pt-[1.5rem] bg-[#f0f2f5] dark:bg-transparent">
+<section class="section-padding pt-[1.5rem]">
   <div class="container-custom">
     <SectionTitle
       label="HABILIDADES CLAVE"
@@ -80,7 +80,7 @@ const skillCategories = [
       {
         skillCategories.map((category, idx) => (
           <div
-            class={`p-5 transition ${idx < 2 ? "lg:col-span-3" : "lg:col-span-2"} ${category.featured ? "rounded-xl bg-accent-primary text-white" : "glass-card"}`}
+            class={`p-5 transition ${idx < 2 ? "lg:col-span-3" : "lg:col-span-2"} ${category.featured ? "rounded-2xl text-white shadow-[0_20px_45px_-20px_var(--glow-primary)] [background-image:linear-gradient(135deg,var(--accent-primary),var(--accent-secondary))]" : "glass-card glass-card-hover"}`}
             data-reveal
             data-reveal-delay={String(idx * 70)}
           >

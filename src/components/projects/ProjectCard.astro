@@ -21,26 +21,28 @@ const {
 const url = externalProject ? liveUrl : `/proyectos/${project.slug}`;
 ---
 
-<article class="group overflow-hidden" data-reveal>
+<article class="glass-card glass-card-hover group overflow-hidden" data-reveal>
   <a
     href={url}
-    class="block overflow-hidden"
+    class="block"
     {...externalProject && { target: "_blank" }}
     {...externalProject && { rel: "noopener noreferrer" }}
   >
-    <div
-      class="relative aspect-[16/10] overflow-hidden rounded-xl border border-border"
-    >
+    <div class="relative aspect-[16/10] overflow-hidden">
       <Image
         src={cover}
         alt={title}
         width={1200}
         height={750}
-        class="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+        class="h-full w-full object-cover transition duration-700 ease-out group-hover:scale-[1.04]"
         loading="lazy"
       />
+      <div
+        class="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent opacity-60 transition-opacity duration-500 group-hover:opacity-30"
+      >
+      </div>
     </div>
-    <div class="space-y-3 p-5">
+    <div class="space-y-3 p-6">
       <div class="flex flex-wrap gap-1.5">
         <Badge text={category} variant="accent" />
         {
@@ -51,11 +53,22 @@ const url = externalProject ? liveUrl : `/proyectos/${project.slug}`;
       </div>
 
       <h3
-        class="font-heading text-2xl font-semibold leading-tight text-text-primary"
+        class="flex items-center gap-2 font-heading text-2xl font-semibold leading-tight text-text-primary transition-colors group-hover:text-accent-primary"
       >
         {title}
+        <svg
+          class="h-5 w-5 shrink-0 -translate-x-1 opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          ><path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg
+        >
       </h3>
-      <p class="text-sm text-text-secondary">{description}</p>
+      <p class="text-sm leading-relaxed text-text-secondary">{description}</p>
     </div>
   </a>
 </article>

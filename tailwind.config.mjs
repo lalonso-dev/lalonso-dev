@@ -13,6 +13,7 @@ export default {
         accent: {
           primary: 'var(--accent-primary)',
           secondary: 'var(--accent-secondary)',
+          tertiary: 'var(--accent-tertiary)',
         },
         text: {
           primary: 'var(--text-primary)',
@@ -21,7 +22,7 @@ export default {
         border: 'var(--border)',
       },
       fontFamily: {
-        heading: ['Syne', 'sans-serif'],
+        heading: ['Space Grotesk', 'Inter', 'sans-serif'],
         body: ['Inter', 'sans-serif'],
       },
     },

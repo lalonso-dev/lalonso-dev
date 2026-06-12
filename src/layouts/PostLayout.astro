@@ -86,89 +86,100 @@ const articleJsonLd = {
   jsonLd={articleJsonLd}
 >
   <Header />
-  <main class="pt-24">
-    <article class="section-padding pt-10 pb-[1.5rem]">
-      <div class="container-custom max-w-4xl px-4 sm:px-6 lg:px-8">
-        <nav class="mb-3 text-sm text-text-secondary">
-          <a href="/blog" class="hover:text-accent-primary">Blog</a>
-          <span class="mx-2">/</span>
-          <span>Artículo</span>
-        </nav>
+  <main>
+    <PostHeader
+      title={frontmatter.title}
+      date={frontmatter.date}
+      categories={frontmatter.categories}
+      readingTime={frontmatter.readingTime}
+      cover={frontmatter.cover}
+    />
 
-        <PostHeader
-          title={frontmatter.title}
-          date={frontmatter.date}
-          categories={frontmatter.categories}
-          readingTime={frontmatter.readingTime}
-          cover={frontmatter.cover}
-        />
-
+    <article class="section-padding pt-8 pb-12">
+      <div class="container-custom max-w-3xl">
+        <!-- Body content -->
         <div
-          class="body__project prose prose-lg max-w-none prose-headings:font-heading prose-headings:text-text-primary prose-p:text-text-secondary prose-a:text-accent-primary prose-strong:text-text-primary prose-code:rounded prose-code:bg-bg-tertiary prose-code:px-1.5 prose-code:py-0.5 prose-pre:border prose-pre:border-border prose-pre:bg-bg-secondary prose-img:rounded-2xl dark:prose-invert [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_pre_code]:rounded-none"
+          class="body__project prose prose-lg max-w-none
+            prose-headings:font-heading prose-headings:text-text-primary prose-headings:tracking-tight
+            prose-p:text-text-secondary prose-p:leading-relaxed
+            prose-a:text-accent-primary prose-a:no-underline hover:prose-a:underline
+            prose-strong:text-text-primary
+            prose-code:rounded prose-code:bg-bg-tertiary prose-code:px-1.5 prose-code:py-0.5 prose-code:text-accent-secondary prose-code:font-medium
+            prose-pre:border prose-pre:border-border prose-pre:bg-bg-secondary prose-pre:rounded-xl
+            prose-img:rounded-2xl prose-img:border prose-img:border-border/60
+            prose-blockquote:border-l-accent-primary prose-blockquote:text-text-secondary
+            prose-hr:border-border/60
+            dark:prose-invert
+            [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_pre_code]:rounded-none [&_pre_code]:text-inherit"
         >
           <slot />
         </div>
 
+        <!-- Tags -->
         {
-          frontmatter.tags && (
-            <div class="mb-3 mt-5 pt-3">
-              <p class="my-0 text-base">Tags:</p>
-              <ul class="mb-0 mt-3 flex flex-wrap items-center justify-start gap-2">
+          frontmatter.tags && frontmatter.tags.length > 0 && (
+            <div class="mt-10 border-t border-border/60 pt-8">
+              <p class="mb-3 text-xs font-semibold uppercase tracking-[0.15em] text-text-secondary">
+                Tags
+              </p>
+              <div class="flex flex-wrap gap-2">
                 {frontmatter.tags.map((item: string) => (
-                  <li class="px-3 py-2 inline-flex items-center justify-center gap-2 rounded-lg font-semibold tracking-tight transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/50 border border-border bg-black text-white  px-4 py-2 text-sm ">
+                  <span class="surface-bg inline-flex items-center rounded-lg border border-border/60 px-3 py-1.5 text-sm font-medium text-text-secondary transition-colors hover:border-accent-primary/40 hover:text-accent-primary">
                     {item}
-                  </li>
+                  </span>
                 ))}
-              </ul>
+              </div>
             </div>
           )
         }
 
-        <div
-          class="mb-0 pb-[2rem] flex flex-wrap items-center justify-end gap-3 pt-[2rem]"
-          data-reveal
-        >
-          <span class="text-base font-medium text-text-primary">Compartir:</span
-          >
-          {
-            shareLinks.map((item) => (
-              <Button
-                text={item.label}
-                target="_blank"
-                aria-label={`Compartir en ${item.label}`}
-                href={item.href}
-                size="sm"
-                variant="outline"
-              />
-            ))
-          }
-          <Button
-            id="copy-link-btn"
-            data-url={postUrl}
-            aria-label="Copiar enlace del post"
-            text="Copiar link"
-            size="sm"
-            variant="outline"
-          />
-        </div>
-
-        <section
-          class="mt-5 mb-4 rounded-2xl border border-border bg-bg-secondary/40 p-5 sm:p-6"
-        >
-          <p class="text-sm text-text-secondary">
-            ¿Te fue útil este artículo? Puedes apoyar mi trabajo
-          </p>
-          <div class="mt-3">
-            <KofiButton />
+        <!-- Share + Ko-fi -->
+        <div class="mt-10 space-y-5">
+          <!-- Share bar -->
+          <div class="glass-card flex flex-wrap items-center gap-3 p-5">
+            <span class="mr-1 text-sm font-semibold text-text-primary">Compartir:</span>
+            {
+              shareLinks.map((item) => (
+                <Button
+                  text={item.label}
+                  target="_blank"
+                  aria-label={`Compartir en ${item.label}`}
+                  href={item.href}
+                  size="sm"
+                  variant="outline"
+                />
+              ))
+            }
+            <Button
+              id="copy-link-btn"
+              data-url={postUrl}
+              aria-label="Copiar enlace del post"
+              text="Copiar link"
+              size="sm"
+              variant="outline"
+            />
           </div>
-        </section>
+
+          <!-- Ko-fi support -->
+          <div class="surface-bg flex flex-col gap-3 rounded-2xl border border-border/60 p-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p class="font-semibold text-text-primary">¿Te fue útil este artículo?</p>
+              <p class="mt-0.5 text-sm text-text-secondary">
+                Puedes apoyar mi trabajo invitándome un café.
+              </p>
+            </div>
+            <div class="shrink-0">
+              <KofiButton />
+            </div>
+          </div>
+        </div>
       </div>
     </article>
 
     {relatedPosts.length > 0 && <RelatedPosts posts={relatedPosts} />}
 
-    <section class="section-padding pb-0 pt-[4rem]">
-      <div class="container-custom max-w-4xl px-4 sm:px-6 lg:px-8">
+    <section class="section-padding pt-8 pb-0">
+      <div class="container-custom max-w-3xl">
         <NewsletterForm
           source="blog-single"
           title="¿Te gustó este artículo?"
@@ -189,7 +200,7 @@ const articleJsonLd = {
       try {
         await navigator.clipboard.writeText(url);
         const original = copyBtn.textContent;
-        copyBtn.textContent = "Copiado";
+        copyBtn.textContent = "¡Copiado!";
         setTimeout(() => {
           copyBtn.textContent = original || "Copiar link";
         }, 1500);

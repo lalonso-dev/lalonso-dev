@@ -15,11 +15,11 @@ const featuredProjects = (await getCollection("projects"))
       <SectionTitle label="TRABAJO DESTACADO" title="Trabajos y resultados" />
       <a
         href="/proyectos"
-        class="hidden items-center gap-2 text-sm font-semibold text-accent-primary hover:underline sm:inline-flex"
+        class="group hidden items-center gap-2 text-sm font-semibold text-accent-primary sm:inline-flex"
       >
         Ver Proyectos
         <svg
-          class="h-4 w-4"
+          class="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
