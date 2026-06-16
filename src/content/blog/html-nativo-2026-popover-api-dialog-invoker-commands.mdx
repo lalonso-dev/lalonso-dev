@@ -1,0 +1,273 @@
+---
+title: "HTML nativo en 2026: Popover API, Dialog e Invoker Commands sin una línea de JS"
+description: "La web nativa por fin ganó. Tooltips, modales y menús declarativos sin librerías. Te explico cómo funcionan Popover API, el elemento dialog y los Invoker Commands, y por qué deberían reemplazar tu próxima dependencia de npm."
+date: 2026-06-16
+cover: "/images/blog/html-nativo-2026.webp"
+categories: ["Frontend", "Tutoriales", "Desarrollo Web"]
+readingTime: 10
+featured: false
+draft: false
+tags:
+  [
+    "html",
+    "css",
+    "javascript",
+    "popover",
+    "dialog",
+    "frontend",
+    "web-apis",
+    "accesibilidad",
+  ]
+---
+
+Durante años, añadir un tooltip, un modal o un menú desplegable implicaba instalar una librería, importar estilos, escribir manejadores de eventos y rezar para que la accesibilidad estuviera bien implementada. En 2026 ese flujo de trabajo ya no tiene justificación.
+
+Tres APIs del navegador maduradas este año cambian eso completamente: **Popover API**, el elemento **`<dialog>`** y los **Invoker Commands**. Las tres alcanzan soporte baseline en todos los navegadores principales, y juntas cubren prácticamente todos los casos donde antes instalabas una dependencia externa.
+
+Este artículo es una guía práctica: qué hace cada una, cómo se usa y cuándo elegirla.
+
+---
+
+## El problema que resuelven
+
+Antes de entrar al código, vale la pena nombrar el problema con claridad.
+
+Para mostrar un tooltip necesitabas JavaScript. Para un modal necesitabas JavaScript más focus trapping manual más gestión de scroll más backdrop. Para un dropdown necesitabas JavaScript más posicionamiento plus z-index management. En cada caso, el resultado era peso de bundle, dependencias que mantener y una accesibilidad que dependía de qué tan bien construida estuviera la librería que elegiste.
+
+El navegador ya sabe hacer todo eso. Solo necesitaba una API decente para exponerlo.
+
+---
+
+## Popover API
+
+La Popover API es la forma nativa y declarativa de crear overlays flotantes: tooltips, menús, notificaciones, pickers de contenido. Sin JavaScript, sin librerías de posicionamiento, sin z-index fights.
+
+### Sintaxis básica
+
+```html
+<!-- El botón dispara el popover -->
+<button popovertarget="mi-menu">Abrir menú</button>
+
+<!-- El elemento popover, oculto por defecto -->
+<div popover id="mi-menu">
+  <p>Contenido del popover</p>
+  <button popovertarget="mi-menu" popovertargetaction="hide">Cerrar</button>
+</div>
+```
+
+Solo dos atributos HTML y tienes un popover funcional. Sin event listeners. Sin `document.getElementById`. El navegador maneja el show/hide, el foco y el cierre con click fuera.
+
+### Tipos de popover
+
+El atributo `popover` acepta dos valores:
+
+**`popover="auto"` (valor por defecto)** — Cierra automáticamente cuando el usuario hace click fuera (*light dismiss*). Solo puede haber un popover auto abierto a la vez — si abres otro, el anterior se cierra solo. Ideal para menús y dropdowns.
+
+```html
+<div popover="auto" id="dropdown">...</div>
+```
+
+**`popover="manual"`** — No se cierra con click fuera. No cierra otros popovers. Requiere un botón de cierre explícito. Ideal para notificaciones tipo toast o paneles que deben persistir.
+
+```html
+<div popover="manual" id="notificacion">
+  <p>Guardado correctamente</p>
+  <button popovertarget="notificacion" popovertargetaction="hide">✕</button>
+</div>
+```
+
+### Control desde JavaScript
+
+Si necesitas control programático, el API es limpio:
+
+```js
+const popover = document.getElementById('mi-menu');
+
+popover.showPopover();   // mostrar
+popover.hidePopover();   // ocultar
+popover.togglePopover(); // alternar
+```
+
+### El anchor posicioning
+
+Chrome 125+ y Firefox 133+ agregan **CSS Anchor Positioning**, la contraparte de CSS que permite posicionar el popover relativo a su trigger de forma declarativa. Todavía no es baseline completo en 2026, pero es la dirección natural: tooltips posicionados sin JavaScript en absoluto.
+
+---
+
+## El elemento `<dialog>`
+
+El `<dialog>` lleva en los navegadores desde 2022 con soporte universal, pero en 2026 es finalmente el estándar de facto para modales. Lo que lo hace especial es lo que viene incluido de serie: focus trapping, tecla Escape, backdrop nativo y semántica ARIA correcta.
+
+### showModal() vs show()
+
+```js
+const modal = document.getElementById('mi-modal');
+
+modal.show();       // modal no-modal: no bloquea el resto de la página
+modal.showModal();  // modal verdadero: backdrop, focus trap, Escape para cerrar
+modal.close();      // cierra el dialog
+```
+
+Para modales reales siempre usa `showModal()`. Activa el top layer del navegador, lo que significa que el dialog siempre se renderiza por encima de todo — sin z-index.
+
+### Estructura básica
+
+```html
+<dialog id="mi-modal">
+  <h2>¿Confirmar acción?</h2>
+  <p>Esta acción no se puede deshacer.</p>
+  <form method="dialog">
+    <button value="cancel">Cancelar</button>
+    <button value="confirm" autofocus>Confirmar</button>
+  </form>
+</dialog>
+
+<button onclick="document.getElementById('mi-modal').showModal()">
+  Abrir modal
+</button>
+```
+
+Nota el `<form method="dialog">`: cuando el usuario envía el formulario, el dialog se cierra automáticamente y el `returnValue` del dialog toma el `value` del botón presionado. Sin preventDefault(), sin lógica de cierre manual.
+
+### Estilizar el backdrop
+
+El backdrop del dialog es accesible vía CSS:
+
+```css
+dialog::backdrop {
+  background: rgb(0 0 0 / 0.6);
+  backdrop-filter: blur(4px);
+}
+
+/* Animación de entrada */
+dialog[open] {
+  animation: dialog-in 200ms ease;
+}
+
+@keyframes dialog-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+```
+
+### ¿Ya no necesito focus trap?
+
+Un punto importante que cambió en 2026: **el W3C Accessible Platform Architectures (APA) Working Group confirmó que no necesitas implementar focus trapping manual** cuando usas el elemento `<dialog>` nativo. El navegador lo gestiona correctamente y el comportamiento actual —donde el foco puede alcanzar controles del navegador fuera del dialog— está deliberadamente diseñado así.
+
+Esto invalida una buena parte del boilerplate que muchas librerías de modales añadían para "mejorar" la accesibilidad.
+
+---
+
+## Invoker Commands
+
+Los Invoker Commands son la API más reciente de las tres. Alcanzaron **soporte baseline en todos los navegadores principales a inicio de 2026** (Chrome 135, Firefox 144, Safari), y son la pieza que faltaba para eliminar JavaScript de prácticamente cualquier interacción declarativa.
+
+La idea es simple: en lugar de añadir un `onclick` a un botón para que controle otro elemento, declaras esa relación en HTML.
+
+### Sintaxis
+
+```html
+<!-- Abre el dialog sin JavaScript -->
+<button commandfor="mi-modal" command="show-modal">Abrir modal</button>
+
+<dialog id="mi-modal">
+  <p>Este modal se abrió sin JS.</p>
+  <button commandfor="mi-modal" command="close">Cerrar</button>
+</dialog>
+```
+
+Los atributos son:
+
+- **`commandfor`** — el ID del elemento que quieres controlar
+- **`command`** — la acción a ejecutar
+
+### Comandos disponibles
+
+Dependiendo del tipo de elemento objetivo, los comandos disponibles cambian:
+
+| Objetivo | Comandos |
+|---|---|
+| `<dialog>` | `show-modal`, `close` |
+| `<details>` | `open`, `close`, `toggle` |
+| `popover` | `show-popover`, `hide-popover`, `toggle-popover` |
+| Media (`<video>`, `<audio>`) | `play-pause`, `mute` |
+| `<input>` | `select-all` |
+
+### Comandos personalizados
+
+También puedes definir tus propios comandos y escucharlos vía JavaScript:
+
+```js
+document.getElementById('mi-elemento').addEventListener('invoke', (e) => {
+  if (e.command === 'mi-accion') {
+    // lógica personalizada
+  }
+});
+```
+
+Esto abre una vía interesante: la interfaz declarativa para la mayoría de los casos, con escape hatch a JS cuando lo necesitas.
+
+---
+
+## Las tres APIs trabajando juntas
+
+El poder real aparece cuando combinas las tres. Aquí un ejemplo de un sistema de notificaciones completamente declarativo:
+
+```html
+<!-- Botón que dispara un popover toast -->
+<button
+  commandfor="toast-guardado"
+  command="show-popover"
+>
+  Guardar cambios
+</button>
+
+<!-- Toast notification sin JS -->
+<div popover="manual" id="toast-guardado" role="status">
+  <span>✓ Guardado correctamente</span>
+  <button
+    commandfor="toast-guardado"
+    command="hide-popover"
+    aria-label="Cerrar notificación"
+  >
+    ✕
+  </button>
+</div>
+```
+
+Cero JavaScript para mostrar y ocultar una notificación accesible con role semántico correcto.
+
+---
+
+## ¿Deberías usarlas hoy?
+
+**Sí, con matices.**
+
+| Situación | Recomendación |
+|---|---|
+| Proyecto nuevo | Usa las tres desde el día uno |
+| App con soporte a navegadores modernos (85%+ de tu tráfico) | Usa Popover API y `<dialog>` ya; Invoker Commands con progressive enhancement |
+| App que soporta IE o navegadores muy viejos | `<dialog>` con polyfill; el resto espera |
+| Reemplazar una librería existente | Evalúa caso a caso; para modales simples el ROI es inmediato |
+
+La Popover API y `<dialog>` llevan tiempo suficiente en producción como para usarlos sin caveats. Los Invoker Commands son más nuevos pero el soporte baseline llegó — solo considera progressive enhancement si tu audiencia incluye usuarios con navegadores desactualizados.
+
+---
+
+## Lo que esto significa a largo plazo
+
+La tendencia es clara: el navegador está recuperando terreno frente a las librerías de JavaScript para UI básica. Lo que antes requería `react-modal`, `headlessui`, `radix-ui` o `floating-ui` hoy tiene equivalente nativo.
+
+Eso no significa que esas librerías desaparezcan — todavía hay casos complejos donde tienen sentido. Pero el punto de partida cambió. En 2026 la pregunta ya no es "¿qué librería instalo?" sino "¿el navegador ya tiene esto?".
+
+La mayoría de las veces, la respuesta es sí.
+
+---
+
+## Recursos
+
+- [Popover API — MDN Web Docs](https://developer.mozilla.org/en-US/docs/Web/API/Popover_API)
+- [Getting Started With The Popover API — Smashing Magazine](https://www.smashingmagazine.com/2026/03/getting-started-popover-api/)
+- [Invoker Commands API — MDN Web Docs](https://developer.mozilla.org/en-US/docs/Web/API/Invoker_Commands_API)
+- [The HTML Dialog Element — Schalk Neethling](https://schalkneethling.com/posts/html-dialog-native-solution-for-accessible-modal-interactions/)
+- [HTML Invoker Commands Achieve Baseline Support — InfoQ](https://www.infoq.com/news/2026/01/html-invoker-commands/)
