@@ -2,25 +2,30 @@
 import SectionTitle from "@/components/ui/SectionTitle.astro";
 import Timeline from "@/components/ui/Timeline.astro";
 
+const careerStart = new Date(2020, 5);
+const now = new Date();
+const yearsExp = now.getFullYear() - careerStart.getFullYear() -
+  (now.getMonth() < careerStart.getMonth() ? 1 : 0);
+
 const experience = [
   {
-    title: "Desarrollador Full Stack Senior",
+    title: "Desarrollador Senior Full Stack",
     company: "The Brand Industry",
-    period: "Jun. 2010 - Actualidad",
+    period: "Jun. 2020 — Actual",
     description:
       "Desarrollo de más de 10 sitios web en Craft CMS. Implementé mejoras de rendimiento del 30% y optimicé procesos internos del equipo técnico.",
   },
   {
-    title: "Consultor Freelance",
-    company: "Independiente",
-    period: "March. 2024 — Actualidad",
+    title: "Desarrollador Web Freelance",
+    company: "Consultoría independiente",
+    period: "Jun. 2023 — Actual",
     description:
       "Implementación de sitios y apps con foco en métricas de negocio y mantenibilidad.",
   },
   {
     title: "Desarrollador Junior Full Stack",
-    company: "Finkok Sapi de CV ",
-    period: "Dic.2019 - Jun.2020",
+    company: "Finkok Sapi de CV",
+    period: "Dic. 2019 — Jun. 2020",
     description:
       "Desarrollador Full Stack Jr en proyectos internos y externos de la empresa desarrollados con las tecnologías python y django framework.",
   },
@@ -38,7 +43,7 @@ const stats = [
       <div>
         <SectionTitle
           label="SOBRE MÍ & EXPERIENCIA"
-          title="Buscando la excelencia, con más de 5 años de experiencia."
+          title={`Buscando la excelencia, con más de ${yearsExp} años de experiencia.`}
           description="Me enfoco en construir software que no solo funcione, sino que escale. Mi enfoque combina profundidad técnica con visión de negocio."
         />
 

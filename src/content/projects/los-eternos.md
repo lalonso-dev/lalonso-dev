@@ -8,7 +8,7 @@ date: 2026-01-26
 cover: "/images/projects/los-eternos-wp.webp"
 gallery: []
 technologies: ["HTML", "CSS", "JS"]
-liveUrl: "https://los-eternos.lalonso.dev/"
+liveUrl: "https://los-eternos.site/"
 githubUrl: "https://github.com/lalonso-dev/los-eternos"
 client: "Los Eternos"
 externalProject: false

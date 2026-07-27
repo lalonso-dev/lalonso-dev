@@ -1,10 +1,15 @@
 ---
 import Button from '@/components/ui/Button.astro';
 
+const careerStart = new Date(2020, 5); // Junio 2020
+const now = new Date();
+const yearsExp = now.getFullYear() - careerStart.getFullYear() -
+  (now.getMonth() < careerStart.getMonth() ? 1 : 0);
+
 const stats = [
   { value: "50+", label: "Proyectos entregados" },
   { value: "99%", label: "Satisfacción de clientes" },
-  { value: "5+", label: "Años de experiencia" },
+  { value: `${yearsExp}+`, label: "Años de experiencia" },
 ];
 
 const socials = [

@@ -1,0 +1,200 @@
+---
+title: "WordPress 7.0 Armstrong: IA en el core, admin rediseñada y todo lo que cambió"
+description: "El 20 de mayo de 2026 llegó la versión más grande de WordPress en 8 años. IA nativa con soporte para OpenAI, Gemini y Claude, primer rediseño del admin desde 2013, revisiones visuales y un MCP Adapter que conecta tu sitio con agentes como Claude Code o Cursor."
+date: 2026-07-27
+cover: "/images/blog/wordpress-7-armstrong-2026.webp"
+categories: ["Noticias", "Desarrollo Web", "Tutoriales"]
+readingTime: 11
+featured: false
+draft: false
+tags:
+  [
+    "wordpress",
+    "cms",
+    "ia",
+    "gutenberg",
+    "php",
+    "backend",
+    "actualización",
+  ]
+---
+
+El 20 de mayo de 2026, el equipo de WordPress lanzó la versión 7.0, bautizada **Armstrong** en honor al astronauta Neil Armstrong. No es una actualización menor: es el mayor salto de WordPress desde la introducción de Gutenberg en 2018. IA nativa en el core, el primer rediseño del panel de administración desde 2013, revisiones visuales inline y un adaptador oficial para conectar tu sitio con agentes de IA como Claude Code o Cursor.
+
+Si tienes sitios en WordPress — propios o de clientes — esto te afecta directamente.
+
+---
+
+## Lo más grande: IA nativa en el core
+
+WordPress 7.0 introduce una infraestructura de IA directamente en el núcleo de la plataforma. No es un plugin, no es un parche — es parte de WordPress desde cero.
+
+### AI Client
+
+El **WP AI Client** es la pieza central. Permite que WordPress se comunique con modelos de lenguaje externos sin depender de plugins de terceros. Viene configurado de fábrica con soporte para tres proveedores:
+
+- **OpenAI** (GPT-4o y familia)
+- **Google Gemini**
+- **Anthropic Claude**
+
+Lo configuras en **Ajustes → Conectores**, introduces tu API key del proveedor que uses y listo. Desde ese momento, WordPress puede usar IA para sugerir contenido, generar alt text, resumir artículos y traducir texto directamente desde el editor.
+
+### Abilities API
+
+La **Abilities API** es la capa de abstracción que hace todo esto independiente del proveedor. En lugar de llamar directamente a OpenAI o Claude, los plugins registran *abilities* (capacidades) y el sistema las resuelve con el proveedor configurado por el usuario.
+
+Esto significa que un plugin que usa la Abilities API funciona con cualquier proveedor — sin reescribir código cuando el cliente quiere cambiar de OpenAI a Claude o viceversa.
+
+```php
+// Registrar una ability personalizada
+add_action( 'wp_register_abilities', function( $registry ) {
+    $registry->register( 'mi-plugin/resumir', [
+        'label'    => 'Resumir contenido',
+        'callback' => 'mi_plugin_resumir_callback',
+    ] );
+} );
+```
+
+La versión 7.0 también introduce una **Client-Side Abilities API** en JavaScript, para que el frontend tenga acceso al mismo registro de capacidades sin pasar por PHP.
+
+### Connectors API
+
+La **Connectors API** permite a los plugins registrar proveedores adicionales más allá de los tres que vienen por defecto. Si tu empresa tiene un modelo propio o quieres integrar Mistral, Llama o cualquier otro, puedes hacerlo sin modificar el core.
+
+---
+
+## El admin tiene nuevo look por primera vez desde 2013
+
+El panel de administración de WordPress no había cambiado su estructura visual desde 2013. WordPress 7.0 lo rediseña completamente, pero de forma progresiva — no todo cambia de golpe.
+
+### DataViews reemplaza las listas de PHP
+
+La pantalla de **Páginas**, **Posts** y otros tipos de contenido ahora usa **DataViews**, una interfaz React que reemplaza las tablas PHP renderizadas en el servidor. El resultado: filtrar, ordenar, agrupar y editar en masa ocurre instantáneamente, sin recargar la página.
+
+Las mejoras concretas:
+- Filtros que se aplican al instante (sin reload)
+- Vista de lista y vista de cuadrícula nativas
+- Selección múltiple para acciones en masa más rápidas
+- Transiciones suaves entre pantallas
+
+### Nuevo esquema de colores y tipografía
+
+El admin estrena un esquema de colores más moderno, nueva tipografía y mejoras generales de accesibilidad. No es un rediseño dramático — es una actualización cuidadosa que no rompe la familiaridad del panel, pero se siente considerablemente más pulido.
+
+---
+
+## Gutenberg Phase 3: revisiones y notas editoriales
+
+WordPress 7.0 marca el inicio oficial de la **Fase 3 de Gutenberg**, que se enfoca en colaboración editorial y flujos de trabajo de contenido.
+
+### Visual Revisions
+
+Las revisiones siempre existieron en WordPress, pero eran difíciles de usar. En 7.0 cambiaron completamente:
+
+- **Diff inline**: los cambios aparecen directamente en el editor con colores rojo/verde, igual que GitHub
+- **Timeline slider**: puedes deslizarte entre versiones y ver los cambios en tiempo real
+- **Mini-map en el scrollbar**: para documentos largos, un indicador visual muestra dónde están los cambios sin tener que desplazarte por todo el contenido
+- **Tracking de configuración de bloques**: no solo el texto — también los cambios en ajustes de bloques quedan registrados
+
+### Notes y Suggestions Mode
+
+El sistema de **Notas** ahora permite dejar comentarios inline sobre bloques específicos o fragmentos de texto, directamente desde el editor. El modo **Suggestions** funciona como "Track Changes" en Word: el colaborador sugiere un cambio y el editor lo acepta o rechaza. Además se agregaron notificaciones por email cuando recibes una nota o sugerencia.
+
+Para agencias y equipos que gestionan contenido con clientes, esto elimina el ciclo de correcciones por email.
+
+---
+
+## Nuevos bloques nativos
+
+WordPress 7.0 incorpora tres nuevos bloques al core, disponibles directamente desde el insertor:
+
+| Bloque | Descripción |
+|---|---|
+| **Breadcrumbs** | Migas de pan automáticas basadas en la jerarquía del contenido |
+| **Icon** | Directorio de íconos incorporado, sin plugin |
+| **Footnotes mejorado** | El bloque de notas al pie ahora soporta numeración automática y estilos personalizables |
+
+---
+
+## MCP Adapter: Claude Code y Cursor pueden leer y escribir tu WordPress
+
+Esta es la parte más interesante para desarrolladores: WordPress lanzó un **MCP Adapter** oficial que expone la Abilities API como herramientas del **Model Context Protocol**.
+
+Esto significa que puedes conectar Claude Code, Cursor, VS Code con Copilot o cualquier cliente MCP directamente a tu WordPress. El agente puede entonces leer posts, crear contenido, actualizar configuraciones y ejecutar cualquier *ability* registrada — todo desde tu entorno de desarrollo.
+
+### Instalación
+
+```bash
+composer require wordpress/mcp-adapter
+```
+
+O descargarlo como plugin desde las [releases en GitHub](https://github.com/WordPress/mcp-adapter/releases).
+
+### Conectar con Claude Code
+
+En tu archivo `.claude.json` agrega:
+
+```json
+{
+  "mcpServers": {
+    "wordpress": {
+      "command": "php",
+      "args": ["path/to/wordpress/mcp-adapter.php"],
+      "env": {
+        "WP_PATH": "/ruta/a/tu/wordpress"
+      }
+    }
+  }
+}
+```
+
+La recomendación del equipo de WordPress es empezar exponiendo solo abilities de lectura antes de habilitar escritura — el modelo puede hacer cambios reales en tu sitio.
+
+---
+
+## Lo que NO llegó en 7.0: colaboración en tiempo real
+
+La característica más esperada era la **colaboración en tiempo real** — múltiples editores trabajando en el mismo documento simultáneamente, al estilo Notion o Google Docs. El equipo la desarrolló completa para 7.0 pero la retiró pocas semanas antes del lanzamiento por problemas de estabilidad bajo carga y bugs encontrados durante las pruebas.
+
+La buena noticia: está confirmada para **WordPress 7.1**, con lanzamiento previsto para agosto de 2026. El equipo prefirió no lanzarla rota.
+
+---
+
+## ¿Deberías actualizar ya?
+
+**Sí, pero con precaución.**
+
+| Escenario | Recomendación |
+|---|---|
+| Sitio nuevo | Empieza directamente en 7.0 |
+| Sitio propio sin plugins complejos | Actualiza, el riesgo es bajo |
+| Sitio de cliente con muchos plugins | Prueba primero en staging |
+| Agencia con decenas de sitios | Protocolo de actualización escalonada |
+
+Los puntos de fricción más comunes reportados por la comunidad son plugins que usaban las tablas PHP del admin directamente — los que hacen eso necesitarán actualización de sus autores para funcionar bien con DataViews.
+
+El comando de siempre antes de cualquier update:
+
+```bash
+wp db export backup-pre-7.0.sql && wp core update
+```
+
+---
+
+## Lo que esto significa para el ecosistema
+
+WordPress impulsa más del 40% de la web. Que la IA sea ahora parte del core no es un detalle — es una señal de dónde va el desarrollo de contenidos. La Abilities API en particular es inteligente: en lugar de atarte a un proveedor, te da una abstracción que sobrevive los cambios del mercado de modelos.
+
+Para desarrolladores de plugins, el MCP Adapter abre una oportunidad real: cualquier *ability* que registres en WordPress puede volverse una herramienta de un agente de IA. El flujo de trabajo donde Claude Code lee y edita contenido de producción directamente ya es posible hoy.
+
+Armstrong no es el final de nada — es el punto de partida de una nueva etapa para la plataforma más usada de la web.
+
+---
+
+## Recursos
+
+- [WordPress 7.0 Field Guide](https://make.wordpress.org/core/2026/05/14/wordpress-7-0-field-guide/) — documentación técnica oficial
+- [WordPress MCP Adapter en GitHub](https://github.com/WordPress/mcp-adapter)
+- [WordPress 7.0 Ships with AI — InfoQ](https://www.infoq.com/news/2026/07/wordpress-7-ai/)
+- [Roadmap a 7.1](https://make.wordpress.org/core/2026/06/19/roadmap-to-7-1/) — colaboración en tiempo real y más
+- [What's New in WordPress 7.0 — WPBeginner](https://www.wpbeginner.com/news/whats-new-in-wordpress-7-0/)
