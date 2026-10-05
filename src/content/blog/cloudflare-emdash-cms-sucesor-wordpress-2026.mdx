@@ -1,0 +1,199 @@
+---
+title: "EmDash: Cloudflare migra su blog de WordPress y lanza su propio CMS"
+description: "Cloudflare migró su blog principal a EmDash, el CMS open source en TypeScript que ellos mismos construyeron. Corre en Workers, aguanta 7000 req/seg, tiene plugins sandboxeados, autenticación con Passkeys e integración nativa con agentes de IA. Todo lo que necesitas saber."
+date: 2026-10-04
+cover: "/images/blog/emdash-cloudflare-cms-2026.webp"
+categories: ["Noticias", "CMS", "Herramientas"]
+readingTime: 10
+featured: true
+draft: false
+tags: ["cloudflare", "emdash", "wordpress", "cms", "typescript", "astro", "workers", "ia"]
+---
+
+## Cloudflare ya no usa WordPress
+
+El 12 de agosto de 2026, Cloudflare completó la migración de su blog principal a **EmDash**, el CMS open source que ellos mismos construyeron. Esta semana documentaron públicamente cómo lo hicieron, qué decidieron en cada paso y qué aprendieron en el proceso. Y el resultado es uno de los casos técnicos más interesantes del año en el mundo de los CMS.
+
+Para entender por qué importa, hay que saber que el blog de Cloudflare no es un sitio pequeño. Normalmente maneja alrededor de 75 solicitudes por segundo, pero cuando un post se vuelve viral puede dispararse a más de **5,000 requests por segundo**. Eso es exactamente el tipo de escenario donde WordPress, con su arquitectura monolítica y sus ciclos de PHP + MySQL, empieza a sufrir.
+
+---
+
+## Qué es EmDash
+
+<a href="https://emdash.dev" target="_blank" rel="noopener noreferrer">EmDash</a> es un CMS open source escrito en TypeScript, construido sobre <a href="https://astro.build" target="_blank" rel="noopener noreferrer">Astro 6.0</a> y diseñado para correr en Cloudflare Workers. Cloudflare lo lanzó el 1 de abril de 2026 como developer preview v0.1.0, con licencia MIT, y se presentó a sí mismo como el **"sucesor espiritual de WordPress"** — una frase que generó reacción inmediata de Matt Mullenweg, cofundador de WordPress.
+
+Que no te confunda la fecha de lanzamiento: no es una broma de April Fools. El proyecto es real, el código está en GitHub bajo la organización `emdash-cms`, y la propia Cloudflare lo está usando en producción para uno de los blogs de tecnología con más tráfico del mundo.
+
+Lo que hace diferente a EmDash de cualquier otro CMS moderno es la combinación de cuatro decisiones de arquitectura:
+
+**1. Corre en el edge, no en un servidor**
+EmDash se despliega como un Cloudflare Worker — sin servidor que mantener, sin escalar instancias, sin pagar por cómputo idle. El tráfico se sirve desde el datacenter más cercano al usuario.
+
+**2. Plugins sandboxeados**
+En WordPress, un plugin tiene acceso a todo el sistema por defecto — la base de datos, el sistema de archivos, otras funciones del CMS. Es el origen de la mayoría de las vulnerabilidades. EmDash cambia esto radicalmente: los plugins corren en un sandbox aislado, sin acceso automático al core. Además, los plugins no están atados a la GPL de WordPress — pueden usar cualquier licencia.
+
+**3. Autenticación con Passkeys**
+Sin contraseñas. EmDash usa Passkeys como método de autenticación principal, eliminando una de las superficies de ataque más comunes en CMS tradicionales.
+
+**4. IA nativa desde el primer día**
+Cloudflare describe EmDash como el primer CMS diseñado para ser gestionado directamente por agentes de IA. Incluye un servidor MCP que permite a los agentes crear, editar, publicar y programar contenido sin interfaz de usuario.
+
+---
+
+## La arquitectura en producción
+
+La configuración que corre el blog de Cloudflare hoy tiene cuatro capas, y el caching hace la mayor parte del trabajo:
+
+```
+Request del usuario
+        ↓
+Cloudflare CDN (capa global)
+        ↓
+Workers Cache (capa de Worker)
+        ↓
+EmDash Object Cache (Workers KV)
+        ↓
+EmDash Worker (lógica del CMS)
+        ↓
+PlanetScale via Cloudflare Hyperdrive
+```
+
+**Workers Cache** intercepta las requests más comunes antes de que lleguen al Worker. **Workers KV** funciona como caché de objetos del CMS, evitando lecturas repetidas a la base de datos. **Cloudflare Hyperdrive** acelera la conexión a PlanetScale reduciendo la latencia de cada query.
+
+El resultado: EmDash puede responder una request completamente cacheada **sin ni siquiera invocar el stack del CMS**. En un test de carga, el sistema aguantó hasta **7,000 requests por segundo** — casi el doble del pico real del blog — con latencia p95 consistente, sin los spikes que tenían con el setup anterior.
+
+---
+
+## Cómo hicieron la migración: el proxy Worker
+
+Esta es la parte del post de Cloudflare que más discusión generó en Reddit y Hacker News, y con razón. Es una estrategia de migración elegante que cualquier equipo puede aplicar, independientemente del CMS que use.
+
+En lugar de hacer un cutover directo, Cloudflare desplegó un **proxy Worker** que rutea el tráfico entre el blog viejo y el nuevo usando cookies:
+
+```js
+// Lógica simplificada del proxy Worker
+export default {
+  async fetch(request, env) {
+    const cookie = request.headers.get('Cookie') || '';
+    const useNewBlog = shouldRouteToNew(cookie, env.ROLLOUT_PERCENTAGE);
+
+    const target = useNewBlog
+      ? 'https://new-blog.cloudflare.com'
+      : 'https://old-blog.cloudflare.com';
+
+    const response = await fetch(new Request(target, request));
+
+    // Fallback automático si el nuevo sitio devuelve un error 500
+    if (response.status >= 500 && useNewBlog) {
+      return fetch(new Request('https://old-blog.cloudflare.com', request));
+    }
+
+    return response;
+  }
+}
+```
+
+El rollout fue así:
+
+```
+Día del migration:
+  08:00 → 1% del tráfico a EmDash
+  10:30 → 5% del tráfico
+  13:00 → 15% del tráfico
+  16:00 → 100% del tráfico
+  
+  Total: un solo día, con fallback automático en cada paso
+```
+
+Lo que hace poderosa esta estrategia es que los ingenieros podían **cambiar el porcentaje de routing en el edge sin tocar ni el CMS viejo ni el nuevo**. Y si EmDash devolvía un error 500, el proxy automáticamente redirigía esa request al blog viejo. El usuario nunca veía el error.
+
+Un comentario en el post de Cloudflare lo resumió bien: *"El zero-downtime proxy Worker más el routing por cookie es la parte que la mayoría de los equipos subestima en una migración."*
+
+---
+
+## MCP: agentes de IA que gestionan el CMS
+
+Junto con la migración, Cloudflare lanzó dos servidores MCP relacionados con EmDash:
+
+- **MCP para el Cloudflare Blog**: permite a agentes de IA navegar y leer el contenido del blog.
+- **MCP para EmDash**: permite a agentes de IA crear, editar, publicar y programar contenido directamente en el CMS.
+
+Esto convierte a EmDash en algo cualitativamente diferente a cualquier CMS existente. En lugar de que un author humano acceda al dashboard y escriba un post, un agente puede recibir una instrucción en lenguaje natural y ejecutar todo el flujo editorial de forma autónoma.
+
+Para developers que ya usan herramientas como Claude Code o Cursor en su workflow, este es el mismo paradigma aplicado a la gestión de contenido.
+
+---
+
+## EmDash vs WordPress: la comparativa honesta
+
+| Aspecto | WordPress | EmDash |
+|---|---|---|
+| Lenguaje core | PHP | TypeScript |
+| Infraestructura | Servidor PHP + MySQL | Cloudflare Workers + KV + D1/PlanetScale |
+| Plugins | Acceso total al sistema | Sandboxeados y aislados |
+| Licencia | GPL | MIT |
+| Autenticación | Contraseñas | Passkeys |
+| IA nativa | Plugins de terceros | MCP integrado |
+| Ecosistema | 60,000+ plugins maduros | En construcción |
+| Usuarios no técnicos | Muy accesible | Curva de aprendizaje mayor |
+| Estado | Maduro (v6.7) | Pre-1.0 (v0.x) |
+
+La tabla deja claro lo más importante: **EmDash no está listo para reemplazar WordPress hoy**. Tiene un ecosistema de plugins en sus primeras etapas, la experiencia de edición sigue madurando y la versión 1.0 no tiene fecha anunciada. El propio post de Cloudflare reconoce que las primeras etapas post-migración tuvieron problemas con la experiencia del editor y los posts programados.
+
+Pero la dirección es clara. Y el hecho de que Cloudflare — que maneja una fracción significativa del tráfico de internet — haya apostado por usar EmDash en producción para su propio blog es la señal más fuerte posible de que el proyecto es serio.
+
+---
+
+## Migrar de WordPress a EmDash: cómo funciona
+
+Para sitios que quieran probar la migración, EmDash incluye dos paths de importación desde WordPress:
+
+**Opción 1 — WXR nativo**: EmDash puede importar directamente el formato de exportación estándar de WordPress (WXR). Basta con ir a WordPress → Herramientas → Exportar y subir el archivo XML a EmDash.
+
+**Opción 2 — Plugin EmDash Exporter**: Para sitios más complejos, el plugin `wp-emdash` (licenciado GPL-3.0, alojado en `emdash-cms/wp-emdash`) maneja contenido, media y custom post types, mapeándolos al sistema de colecciones con esquema de EmDash en lugar de forzarlos a la tabla `posts` genérica de WordPress.
+
+```bash
+# Instalar EmDash localmente para probar
+npm create emdash@latest mi-sitio
+
+# Importar desde WordPress
+cd mi-sitio
+npx emdash import:wordpress ./export.xml
+```
+
+---
+
+## La reacción de Matt Mullenweg
+
+El lanzamiento de EmDash en abril con la frase "sucesor espiritual de WordPress" no pasó desapercibido. Matt Mullenweg, cofundador de WordPress y CEO de Automattic, respondió públicamente con críticas sobre la madurez del proyecto y el timing del anuncio.
+
+La ironía del contexto: WordPress 7.0 salió en abril con colaboración en tiempo real y Web Client AI API, y ahora Cloudflare — que en enero adquirió Astro — lanza su propio CMS construido sobre Astro que compite directamente con WordPress. Es el mismo ecosistema, reorganizándose aceleradamente.
+
+---
+
+## Por qué esto es relevante para tu stack
+
+Si usas Astro en tu blog personal o en proyectos de clientes, EmDash es directamente relevante porque **está construido sobre Astro 6.0**. El sistema de contenido, el routing y los componentes de UI de EmDash son Astro por debajo.
+
+Si usas Craft CMS para proyectos cliente, EmDash apunta a un segmento diferente — sitios de contenido a escala con necesidades de edge performance — más que al espacio de CMS a medida donde Craft brilla.
+
+Y si tienes clientes con WordPress que preguntan qué viene después, EmDash es la respuesta más honesta que existe hoy: todavía no está listo para producción general, pero es la apuesta más seria que se ha hecho contra WordPress en años, respaldada por la empresa de infraestructura más grande de internet.
+
+---
+
+## Conclusión
+
+EmDash no mató WordPress esta semana. Pero Cloudflare demostró que un CMS moderno puede construirse sobre TypeScript y Astro, correr en el edge sin servidores, aguantar 7,000 req/seg con latencia consistente, migrar desde WordPress con zero downtime y ser gestionado nativamente por agentes de IA.
+
+Eso, más la versión 1.0 en camino y el peso de Cloudflare detrás, convierte a EmDash en el proyecto de CMS más interesante de 2026. Vale la pena seguirlo de cerca.
+
+---
+
+## Fuentes
+
+- <a href="https://blog.cloudflare.com/migrating-the-cloudflare-blog-to-emdash" target="_blank" rel="noopener noreferrer">Migrating the Cloudflare Blog to EmDash</a> — Blog oficial de Cloudflare, septiembre 2026
+- <a href="https://www.infoq.com/news/2026/09/cloudflare-emdash-migration/" target="_blank" rel="noopener noreferrer">Cloudflare Details its Migration to EmDash</a> — InfoQ, septiembre 2026
+- <a href="https://www.searchenginejournal.com/cloudflare-says-emdash-version-1-0-is-releasing-soon/586951/" target="_blank" rel="noopener noreferrer">Cloudflare Says EmDash Version 1.0 Is Releasing Soon</a> — Search Engine Journal
+- <a href="https://www.cmswire.com/digital-experience/meet-emdash-the-cloudflare-cms-and-the-wordpress-spiritual-successor/" target="_blank" rel="noopener noreferrer">Meet EmDash, the Cloudflare CMS and WordPress Spiritual Successor</a> — CMSWire
+- <a href="https://github.com/emdash-cms/emdash" target="_blank" rel="noopener noreferrer">Repositorio oficial de EmDash en GitHub</a> — emdash-cms/emdash
+- <a href="https://emdash.dev" target="_blank" rel="noopener noreferrer">Documentación oficial de EmDash</a> — emdash.dev
