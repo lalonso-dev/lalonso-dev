@@ -1,0 +1,495 @@
+---
+title: "Módulos custom en Craft CMS 5: controladores, rutas y permisos paso a paso"
+description: "Aprende a crear un módulo propio en Craft CMS 5 desde cero: estructura, autoload con Composer, registro en app.php, controladores con acciones JSON y POST, control de acceso, CSRF, rutas del sitio y permisos personalizados. Con un ejemplo real que puedes copiar."
+date: 2026-11-03
+cover: "/images/blog/craft-cms-5-modulo-controladores.webp"
+categories: ["Tutoriales", "Craft CMS", "Backend"]
+readingTime: 14
+featured: false
+draft: false
+tags:
+  [
+    "craft-cms",
+    "php",
+    "yii2",
+    "modulos",
+    "controladores",
+    "backend",
+    "tutorial",
+  ]
+---
+
+## Cuándo necesitas un módulo (y cuándo no)
+
+Tarde o temprano, un proyecto Craft CMS pide algo que ni los campos, ni Twig, ni los plugins del Plugin Store resuelven: un endpoint JSON para un buscador, un formulario con lógica propia, un webhook que recibe datos de un tercero.
+
+Para eso existen los **módulos**: código PHP específico de tu proyecto que vive en el repositorio, sin publicarse ni instalarse desde el panel. Según la <a href="https://craftcms.com/docs/5.x/extend/module-guide.html" target="_blank" rel="noopener noreferrer">documentación oficial</a>, los módulos son para código de un solo proyecto; si quieres la estructura de un plugin sin distribuirlo, la alternativa son los plugins privados.
+
+En este tutorial vas a construir un módulo llamado `sitio` con:
+
+- Un **controlador** con dos acciones: una búsqueda que responde JSON y un formulario POST con validación.
+- **Control de acceso**: quién puede llamar a cada acción.
+- Una **ruta limpia** del sitio (`/api/buscar`) en lugar de la URL larga de acciones.
+- Un **permiso personalizado** para una acción restringida.
+
+> Ya vimos cómo extender Twig desde un módulo en [Cómo crear funciones personalizadas para Twig en Craft CMS 4](/blog/como-crear-funciones-personalizadas-para-twig-en-craft-cmc-4). Aquí nos centramos en la otra mitad: controladores y rutas.
+
+---
+
+## Requisitos
+
+- Un proyecto con Craft CMS 5 funcionando (idealmente con DDEV).
+- Composer y acceso al terminal del proyecto.
+- Conocimientos básicos de PHP orientado a objetos.
+
+---
+
+## Paso 1: Elegir namespace e ID
+
+Dos decisiones que conviene tomar bien desde el principio:
+
+- **Namespace:** la raíz de tus clases PHP. No debe empezar por `craft\`. Usaremos `sitio`.
+- **ID del módulo:** empieza por letra y solo lleva minúsculas, números y guiones. Evita nombres que choquen con controladores del core o con handles de plugins instalados, como `app` o `commerce`.
+
+Craft puede generarte el esqueleto:
+
+```bash
+# Con DDEV
+ddev craft make module
+
+# Sin DDEV
+php craft make module
+```
+
+El generador pregunta el nombre y el ID, crea la carpeta y deja el módulo registrado. Si prefieres entender cada pieza (y conviene hacerlo al menos una vez), sigue los pasos siguientes a mano.
+
+---
+
+## Paso 2: Estructura de archivos
+
+```
+mi-proyecto/
+├── config/
+│   └── app.php
+├── modules/
+│   └── sitio/
+│       ├── Module.php
+│       └── controllers/
+│           └── BuscadorController.php
+├── templates/
+└── composer.json
+```
+
+---
+
+## Paso 3: Autoload con Composer
+
+Los módulos no necesitan su propio `composer.json`. Basta con mapear el namespace en el del proyecto:
+
+```json
+{
+  "autoload": {
+    "psr-4": {
+      "sitio\\": "modules/sitio/"
+    }
+  }
+}
+```
+
+Y regenerar el autoloader:
+
+```bash
+composer dump-autoload -a
+```
+
+Si olvidas este paso, el síntoma típico es un error de clase no encontrada al cargar el panel o la web.
+
+---
+
+## Paso 4: La clase Module
+
+`modules/sitio/Module.php` es el punto de entrada. Aquí defines el alias, indicas dónde están los controladores y registras listeners de eventos:
+
+```php
+<?php
+
+namespace sitio;
+
+use Craft;
+
+class Module extends \yii\base\Module
+{
+    public function init()
+    {
+        // Alias con el nombre del namespace
+        Craft::setAlias('@sitio', __DIR__);
+
+        // Controladores distintos para web y consola
+        if (Craft::$app->getRequest()->getIsConsoleRequest()) {
+            $this->controllerNamespace = 'sitio\\console\\controllers';
+        } else {
+            $this->controllerNamespace = 'sitio\\controllers';
+        }
+
+        parent::init();
+
+        // Lo que dependa de que Craft esté completamente listo,
+        // va dentro de onInit()
+        Craft::$app->onInit(function () {
+            // Más adelante: rutas y permisos
+        });
+    }
+}
+```
+
+Dos detalles importantes que la documentación remarca:
+
+1. El alias debe coincidir con el namespace, cambiando `\` por `/`.
+2. **No crees element queries ni cargues el entorno Twig directamente en `init()`**: puede provocar condiciones de carrera e inicialización incompleta. Por eso lo diferido va en `onInit()`.
+
+---
+
+## Paso 5: Registrar el módulo en config/app.php
+
+```php
+<?php
+
+return [
+    'modules' => [
+        'sitio' => sitio\Module::class,
+    ],
+    'bootstrap' => ['sitio'],
+];
+```
+
+`modules` declara que existe; `bootstrap` hace que se cargue en cada petición. Si tu módulo solo aporta controladores y no necesita escuchar eventos, puedes quitarlo de `bootstrap` y cargarlo bajo demanda. Pero entonces los listeners que registres en `init()` solo se activan cuando el módulo se inicializa, y puedes perderte eventos anteriores.
+
+---
+
+## Paso 6: Tu primer controlador
+
+Los controladores viven en `controllers/` dentro del módulo. Dos reglas de nomenclatura:
+
+- La clase y el archivo terminan en `Controller`.
+- Los métodos de acción empiezan por `action`.
+
+```php
+<?php
+
+namespace sitio\controllers;
+
+use Craft;
+use craft\elements\Entry;
+use craft\web\Controller;
+use yii\web\Response;
+
+class BuscadorController extends Controller
+{
+    // Solo esta acción es pública; el resto exige sesión
+    protected array|bool|int $allowAnonymous = [
+        'buscar' => self::ALLOW_ANONYMOUS_LIVE,
+    ];
+
+    public function actionBuscar(): Response
+    {
+        $this->requireAcceptsJson();
+
+        $termino = trim((string) $this->request->getQueryParam('q', ''));
+
+        if (mb_strlen($termino) < 3) {
+            return $this->asFailure('Escribe al menos 3 caracteres.');
+        }
+
+        $entradas = Entry::find()
+            ->section('blog')
+            ->search($termino)
+            ->limit(10)
+            ->all();
+
+        return $this->asJson([
+            'total' => count($entradas),
+            'resultados' => array_map(fn(Entry $e) => [
+                'titulo' => $e->title,
+                'url' => $e->url,
+            ], $entradas),
+        ]);
+    }
+}
+```
+
+### Cómo se convierte en URL
+
+Craft mapea controlador y acción a una URL con esta forma:
+
+```
+/actions/{id-del-modulo}/{controlador}/{accion}
+```
+
+Los segmentos van en kebab-case: `BuscadorController` pasa a `buscador` y `actionBuscar()` a `buscar`. Tu acción responde en:
+
+```
+/actions/sitio/buscador/buscar?q=craft
+```
+
+El prefijo `actions` es el _action trigger_ y se puede cambiar con el ajuste `actionTrigger` en `config/general.php`.
+
+Pruébalo:
+
+```bash
+curl -H "Accept: application/json" \
+  "https://mi-proyecto.ddev.site/actions/sitio/buscador/buscar?q=craft"
+```
+
+---
+
+## Paso 7: Control de acceso
+
+Por defecto, **toda acción de un controlador de Craft exige una sesión activa**. Para abrirla al público hay que declararlo en `$allowAnonymous`. Es una decisión segura por diseño: lo que no declares es privado.
+
+| Constante                | Significado                                 |
+| ------------------------ | ------------------------------------------- |
+| `ALLOW_ANONYMOUS_NEVER`  | Nunca anónimo (valor por defecto)           |
+| `ALLOW_ANONYMOUS_LIVE`   | Anónimo cuando el sitio está en línea       |
+| `ALLOW_ANONYMOUS_OFFLINE`| Anónimo cuando el sitio está fuera de línea |
+
+Como en el ejemplo, puedes pasar un array con el ID de cada acción como clave, para abrir solo las que quieras. Y dentro de cada acción tienes guardas que se escriben al principio:
+
+```php
+$this->requireLogin();                       // usuario autenticado
+$this->requirePermission('sitioExportar');   // con un permiso concreto
+$this->requirePostRequest();                 // solo POST
+$this->requireAcceptsJson();                 // cabecera Accept: application/json
+$this->requireSiteRequest();                 // solo front-end
+$this->requireCpRequest();                   // solo panel de control
+```
+
+Si necesitas la misma guarda en todas las acciones del controlador, colócala en `beforeAction()`:
+
+```php
+public function beforeAction($action): bool
+{
+    $this->requireSiteRequest();
+
+    return parent::beforeAction($action);
+}
+```
+
+---
+
+## Paso 8: Una acción POST con validación
+
+Ahora un formulario de suscripción. Este es el patrón estándar de Craft para formularios: el método de la acción valida, y los helpers `asSuccess()` y `asFailure()` eligen solos el formato correcto según la petición (redirección con mensaje flash, o JSON si el cliente lo pidió).
+
+Añade a `BuscadorController` (o crea un `SuscripcionController` si prefieres separar):
+
+```php
+protected array|bool|int $allowAnonymous = [
+    'buscar' => self::ALLOW_ANONYMOUS_LIVE,
+    'suscribir' => self::ALLOW_ANONYMOUS_LIVE,
+];
+
+public function actionSuscribir(): ?Response
+{
+    $this->requirePostRequest();
+
+    $email = trim((string) $this->request->getRequiredBodyParam('email'));
+    $trampa = $this->request->getBodyParam('sitio_web'); // honeypot
+
+    // Si el honeypot trae algo, es un bot: fingimos éxito
+    if (!empty($trampa)) {
+        return $this->asSuccess('¡Gracias por suscribirte!');
+    }
+
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        return $this->asFailure(
+            'El correo no es válido.',
+            routeParams: ['email' => $email],
+        );
+    }
+
+    // Aquí iría tu lógica: guardar en tu CRM, base de datos, etc.
+    Craft::info("Nueva suscripción: {$email}", __METHOD__);
+
+    return $this->asSuccess('¡Gracias por suscribirte!');
+}
+```
+
+Algunas claves del patrón:
+
+- `getRequiredBodyParam()` lanza un error 400 automático si el parámetro no llega.
+- `asFailure()` con `routeParams` devuelve esos valores al template, para repoblar el formulario sin que el usuario vuelva a escribir.
+- Para redirigir tras el éxito, usa `redirectToPostedUrl()`, que lee el parámetro `redirect` enviado (y firmado) desde el formulario.
+
+### El formulario en Twig
+
+```twig
+<form method="post" accept-charset="UTF-8">
+  {{ csrfInput() }}
+  {{ actionInput('sitio/buscador/suscribir') }}
+  {{ redirectInput('gracias') }}
+
+  <input type="email" name="email" value="{{ email ?? '' }}" required>
+
+  {# Honeypot: oculto para humanos #}
+  <input type="text" name="sitio_web" tabindex="-1" autocomplete="off"
+         style="position:absolute;left:-9999px" aria-hidden="true">
+
+  <button type="submit">Suscribirme</button>
+</form>
+
+{% if errorMessage ?? false %}
+  <p role="alert">{{ errorMessage }}</p>
+{% endif %}
+```
+
+`csrfInput()` es obligatorio: **Craft rechaza cualquier POST sin un token CSRF válido**. Solo deberías desactivar esa validación en un caso como un webhook de terceros donde verificas la firma por otro medio, y siempre acotándolo a esa acción:
+
+```php
+public function beforeAction($action): bool
+{
+    if ($action->id === 'recibir-webhook') {
+        $this->enableCsrfValidation = false;
+    }
+
+    return parent::beforeAction($action);
+}
+```
+
+---
+
+## Paso 9: Rutas limpias del sitio
+
+`/actions/sitio/buscador/buscar` funciona, pero no es una URL bonita para una API pública. Hay dos formas de mapearla.
+
+### Opción A: `config/routes.php` (la más simple)
+
+```php
+<?php
+
+return [
+    'api/buscar' => 'sitio/buscador/buscar',
+];
+```
+
+### Opción B: desde el módulo, con un evento
+
+Es mejor cuando quieres que las rutas viajen con el módulo:
+
+```php
+use craft\events\RegisterUrlRulesEvent;
+use craft\web\UrlManager;
+use yii\base\Event;
+
+// dentro de Module::init(), después de parent::init()
+Event::on(
+    UrlManager::class,
+    UrlManager::EVENT_REGISTER_SITE_URL_RULES,
+    function (RegisterUrlRulesEvent $event) {
+        $event->rules['api/buscar'] = 'sitio/buscador/buscar';
+    }
+);
+```
+
+Ahora `GET /api/buscar?q=craft` ejecuta la misma acción.
+
+> La documentación de Craft sugiere que los **plugins** eviten registrar reglas de URL del sitio y dejen esa decisión a quien los usa. En un **módulo** de proyecto no hay ese problema: el código es tuyo y la ruta es parte del proyecto.
+
+---
+
+## Paso 10: Permisos personalizados
+
+Para acciones restringidas, como exportar datos desde el panel, puedes registrar un permiso propio que aparecerá en los ajustes de los grupos de usuarios:
+
+```php
+use craft\events\RegisterUserPermissionsEvent;
+use craft\services\UserPermissions;
+
+Event::on(
+    UserPermissions::class,
+    UserPermissions::EVENT_REGISTER_PERMISSIONS,
+    function (RegisterUserPermissionsEvent $event) {
+        $event->permissions[] = [
+            'heading' => 'Módulo del sitio',
+            'permissions' => [
+                'sitioExportar' => [
+                    'label' => 'Exportar suscriptores',
+                ],
+            ],
+        ];
+    }
+);
+```
+
+Y en el controlador:
+
+```php
+public function actionExportar(): Response
+{
+    $this->requirePermission('sitioExportar');
+
+    // ... generar el CSV
+}
+```
+
+`requirePermission()` ya exige sesión iniciada, así que no necesitas llamar a `requireLogin()` antes. Los administradores pasan siempre; el resto necesita que el permiso esté marcado en su grupo.
+
+---
+
+## Errores comunes
+
+| Síntoma                                         | Causa probable                                                                 |
+| ----------------------------------------------- | ------------------------------------------------------------------------------ |
+| `Class "sitio\Module" not found`                | Falta el mapeo PSR-4 o no ejecutaste `composer dump-autoload -a`               |
+| 404 en `/actions/sitio/...`                     | El ID del módulo no coincide, o falta el controller namespace                  |
+| Redirección al login al llamar a la acción      | No la declaraste en `$allowAnonymous`                                          |
+| 400 "Unable to verify your data submission"     | Falta `csrfInput()` en el formulario                                           |
+| 400 al llamar a la acción por GET               | La acción usa `requirePostRequest()`                                           |
+| Los cambios en `Module.php` no se reflejan      | Caché de OPcache en el servidor; reinicia PHP-FPM                              |
+| Colisión con un controlador existente           | ID del módulo igual al de un plugin o al core (`app`, `commerce`...)           |
+
+---
+
+## Estructura final
+
+```
+modules/sitio/
+├── Module.php                      # alias, rutas, permisos, eventos
+└── controllers/
+    └── BuscadorController.php      # buscar, suscribir, exportar
+config/
+├── app.php                         # registro del módulo
+└── routes.php                      # api/buscar (opcional)
+```
+
+---
+
+## Conclusión
+
+Un módulo de Craft es, en el fondo, un módulo de Yii2 con un par de convenciones: un namespace mapeado en Composer, un `Module.php` que apunta a sus controladores, y el registro en `config/app.php`. A partir de ahí, un controlador es una clase con métodos `action*` cuyo acceso **es privado por defecto** y se abre explícitamente.
+
+Si interiorizas tres ideas, el resto cae por su peso:
+
+1. **`$allowAnonymous` abre; las guardas `require*()` cierran.** Piensa siempre en quién puede llamar a cada acción.
+2. **`asSuccess()` y `asFailure()` hacen de puente** entre formularios tradicionales y peticiones JSON sin que escribas dos versiones.
+3. **El CSRF no se negocia**: `csrfInput()` en cada formulario, y desactívalo solo en webhooks con otra verificación.
+
+Con esto ya puedes construir endpoints, formularios y webhooks propios sin depender de un plugin para cada necesidad.
+
+---
+
+## Fuentes y recursos
+
+- <a
+    href="https://craftcms.com/docs/5.x/extend/module-guide.html"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    Craft CMS 5 — Module Guide
+  </a>
+- <a
+    href="https://craftcms.com/docs/5.x/extend/controllers.html"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    Craft CMS 5 — Controllers
+  </a>
