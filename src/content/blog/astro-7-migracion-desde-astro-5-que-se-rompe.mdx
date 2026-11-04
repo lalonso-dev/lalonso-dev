@@ -1,0 +1,310 @@
+---
+title: "Astro 7 en la práctica: migré mi portafolio desde Astro 5 y esto es lo que se rompió"
+description: "Probé la migración de Astro 5.18 a Astro 7.4 en un sitio real con MDX, Tailwind y Content Collections. Qué cambió, qué falló (Node, Tailwind, colecciones), qué salió mejor (CSS −43%) y cómo usar la nueva opción --timings."
+date: 2026-11-03
+cover: "/images/blog/astro-7-migracion-desde-astro-5.webp"
+categories: ["Astro", "Desarrollo Web", "Tutoriales"]
+readingTime: 10
+featured: false
+draft: false
+tags:
+  [
+    "astro",
+    "migracion",
+    "tailwind",
+    "content-collections",
+    "mdx",
+    "rendimiento",
+    "node",
+  ]
+---
+
+## Por qué probé la migración con un sitio real
+
+Las notas de versión te dicen qué cambió. No te dicen qué le pasa a **tu** proyecto. Este portafolio corre en **Astro 5.18** con MDX, Tailwind 3, Shiki y Content Collections, y Astro ya va por la **7.4** (publicada el <a href="https://astro.build/blog/astro-740" target="_blank" rel="noopener noreferrer">15 de octubre de 2026</a>), con una versión mayor entre medias.
+
+Así que hice la migración de verdad, en una copia aislada del repositorio (sin tocar `main` ni desplegar nada), y comparé el resultado compilado contra el de Astro 5. Esto es lo que encontré, incluyendo lo que **no** pude verificar.
+
+> **Alcance honesto:** probé que el sitio compila y que el HTML y el CSS generados son equivalentes. No revisé visualmente cada página en un navegador. Donde eso importa, lo digo.
+
+---
+
+## Qué cambió entre Astro 5 y 7
+
+Hay dos saltos, el 6 y el 7. Según las guías oficiales de migración (<a href="https://docs.astro.build/en/guides/upgrade-to/v6/" target="_blank" rel="noopener noreferrer">v6</a> y <a href="https://docs.astro.build/en/guides/upgrade-to/v7/" target="_blank" rel="noopener noreferrer">v7</a>), los cambios que más pueden afectarte son:
+
+| Versión | Cambio                                                                                 |
+| ------- | -------------------------------------------------------------------------------------- |
+| v6      | Node 22.12 o superior (se descartan Node 18 y 20)                                      |
+| v6      | Vite 7, Zod 4 y Shiki 4                                                                |
+| v6      | **Se eliminan las colecciones legacy**: todo debe usar la Content Layer API            |
+| v6      | Se eliminan `Astro.glob()`, `<ViewTransitions />` y otras APIs obsoletas               |
+| v7      | Vite 8 y compilador de Astro en Rust, más rápido y **más estricto** con el HTML        |
+| v7      | **Sätteri** reemplaza a remark/rehype como procesador de Markdown por defecto          |
+| v7      | `compressHTML` pasa a `'jsx'`: las reglas de espacios en blanco cambian                |
+| v7      | Se elimina `@astrojs/db` y varios flags experimentales pasan a ser estables            |
+
+Y la 7.4 añade novedades de las que hablo más abajo.
+
+---
+
+## Lo que me encontré, en orden
+
+### 1. Node: la versión exacta importa
+
+La guía de la 7.4 dice que se requiere **Node 22.22.0 o superior**. Tengo justo la 22.22.0, así que parecía cubierto. No lo estaba:
+
+```
+Node.js v22.22.0 is not supported by Astro!
+Please upgrade Node.js to a supported version: ">=22.23.4"
+```
+
+La versión que `npm` instaló (7.4.5) exige **22.23.4**. Las notas de la 7.4.0 y el paquete publicado no coinciden, así que **fíate del mensaje del propio Astro, no de la documentación**.
+
+Lo importante para un sitio en GitHub Pages es el workflow de despliegue. Si tienes `node-version: 20` en `.github/workflows/deploy.yml`, el build en CI falla aunque en local funcione. Cámbialo a `22`, que resuelve a la última 22.x.
+
+### 2. Tailwind: el bloqueo real
+
+Este es el que más trabajo da. Mi proyecto usa `@astrojs/tailwind` con Tailwind 3. Al instalar Astro 7:
+
+```
+npm error Could not resolve dependency:
+npm error peer astro@"^3.0.0 || ^4.0.0 || ^5.0.0" from @astrojs/tailwind@6.0.2
+```
+
+La última versión de la integración declara compatibilidad **solo hasta Astro 5**. `npm` se niega a instalar. Forzándolo con `--legacy-peer-deps` el build funciona, y el CSS generado era equivalente. Pero es una combinación **no soportada**, y no la dejaría en producción.
+
+La <a href="https://docs.astro.build/en/guides/styling/#tailwind" target="_blank" rel="noopener noreferrer">documentación de Astro</a> deja claro el camino: la integración solo se necesita para Tailwind 3 legacy. Lo recomendado es **Tailwind 4 con el plugin de Vite**:
+
+```bash
+npx astro add tailwind
+npm uninstall @astrojs/tailwind
+```
+
+```css
+/* src/styles/global.css */
+@import "tailwindcss";
+```
+
+Eso implica migrar de Tailwind 3 a 4 (configuración en CSS en lugar de `tailwind.config`, entre otros cambios). Es una tarea aparte, y por eso conviene hacerla **antes** de subir a Astro 7, no a la vez.
+
+### 3. Content Collections: el cambio de código
+
+Aquí sí hay que tocar código. Mi `src/content/config.ts` usaba la API antigua (`type: "content"`). En Astro 6 esa API desaparece. Hay que:
+
+1. Mover el archivo a `src/content.config.ts`.
+2. Sustituir `type: "content"` por un `loader` con `glob()`.
+3. Importar `z` desde `astro/zod` en lugar de `astro:content`.
+
+```ts
+// src/content.config.ts
+import { defineCollection } from "astro:content";
+import { z } from "astro/zod";
+import { glob } from "astro/loaders";
+
+const blog = defineCollection({
+  loader: glob({ pattern: "**/[^_]*.{md,mdx}", base: "./src/content/blog" }),
+  schema: z.object({
+    title: z.string(),
+    description: z.string(),
+    date: z.date(),
+    // ...
+  }),
+});
+```
+
+Después, en las páginas y componentes:
+
+- `entry.slug` pasa a **`entry.id`**.
+- `entry.render()` pasa a **`render(entry)`**, importando `render` desde `astro:content`.
+
+```astro
+---
+import { getCollection, render } from "astro:content";
+
+export async function getStaticPaths() {
+  const posts = await getCollection("blog", ({ data }) => !data.draft);
+  return posts.map((post) => ({
+    params: { slug: post.id },   // antes: post.slug
+    props: { post },
+  }));
+}
+
+const { post } = Astro.props;
+const { Content } = await render(post);   // antes: post.render()
+---
+```
+
+En mi caso fueron **9 archivos y unas 28 líneas cambiadas**. Todos los `.md` y `.mdx` existentes siguieron funcionando sin tocarlos, y los IDs coinciden con los antiguos slugs, así que las URLs no cambian.
+
+### 4. El resto: sin sorpresas
+
+Para ser justos, lo que podía romperse y no se rompió:
+
+- **MDX:** `@astrojs/mdx` pasó de 4.3.13 a **8.1.2** sin cambios de configuración.
+- **Sitemap:** `@astrojs/sitemap` a 3.7.4, con **exactamente las mismas URLs**.
+- **Shiki:** mi configuración con temas claro y oscuro se mantuvo.
+- **Markdown:** no uso plugins remark ni rehype, así que el cambio a Sätteri no me afectó. Si tú sí los usas, tendrás que portarlos o mantener `@astrojs/markdown-remark` con `unified()`.
+
+El build terminó con **cero avisos** y las mismas 47 páginas que con Astro 5.
+
+---
+
+## Qué mejoró (medido)
+
+Comparé las carpetas `dist/` de ambas versiones:
+
+| Métrica                      | Astro 5.18 | Astro 7.4.5 |
+| ---------------------------- | ---------- | ----------- |
+| Páginas generadas            | 47         | 47          |
+| CSS total                    | 115,8 KB   | 66,4 KB     |
+| Archivos CSS                 | 2          | 1           |
+| HTML de la portada           | 58,9 KB    | 58,0 KB     |
+| HTML del listado del blog    | 87,9 KB    | 86,0 KB     |
+
+La caída del **43 % en CSS** es la más llamativa. Comprobé que no se perdió nada: los selectores de clase únicos son prácticamente los mismos (573 frente a 568), y las diferencias que quedan son solo redondeos de decimales del minificador (`.0666667em` frente a `.06667em`). El CSS ya no se duplica entre fragmentos.
+
+El HTML pesa alrededor de un 2 % menos por la nueva regla de espacios en blanco, que nos lleva al siguiente punto.
+
+---
+
+## Lo que tienes que revisar a mano
+
+### Espacios entre elementos en línea
+
+Con `compressHTML: 'jsx'`, el espacio entre etiquetas en línea desaparece. La guía lo ilustra con este caso: `<span>hola</span><em>mundo</em>` se renderiza como `holamundo`.
+
+En mi sitio lo vi en el breadcrumb y en la línea de metadatos de los posts. Antes salía así:
+
+```html
+<time>…</time> <span class="opacity-40">·</span> <span>8 min lectura</span>
+```
+
+Y ahora:
+
+```html
+<time>…</time><span class="opacity-40">·</span><span>8 min lectura</span>
+```
+
+Si el contenedor es `flex` con `gap`, no pasa nada. Pero si es texto normal, las palabras se pegan. **No verifiqué visualmente estos casos**, así que revísalos en tu sitio. Tienes dos salidas:
+
+```astro
+<span>hola</span>{" "}<em>mundo</em>   <!-- espacio explícito -->
+```
+
+```js
+// astro.config.mjs: conservar el comportamiento anterior
+export default defineConfig({
+  compressHTML: true,
+});
+```
+
+### Bloques de código
+
+Comparé los 197 bloques de código del sitio. El **texto es idéntico en todos**; en 41 cambia solo la codificación (`&#x3C;` pasa a `&lt;`), que es equivalente en HTML. Aun así, merece un vistazo a los temas claro y oscuro.
+
+### HTML inválido
+
+El compilador en Rust es más estricto: las etiquetas sin cerrar ahora son error y un `div` dentro de un `p` ya no se reestructura en silencio. En mi proyecto no saltó nada, pero si arrastras HTML antiguo es donde primero fallará.
+
+---
+
+## Novedades de Astro 7.4 que sí usaría
+
+### `astro build --timings`
+
+Esta me gustó de inmediato. Te muestra dónde se va el tiempo del build:
+
+```bash
+npx astro build --timings
+```
+
+En mi sitio, el resultado fue:
+
+```
+total 3.15s · 48 pages · output "static"
+
+  prerender bundle   2.14s  67.9%
+  @mdx-js/rolldown   1.33s
+  highlight (Shiki)  1.02s  across 117 code blocks
+```
+
+Casi el 70 % del build es empaquetar y, dentro de eso, el MDX y el resaltado de sintaxis. Hasta ahora lo habría adivinado; ahora lo veo. Útil para decidir si merece la pena optimizar algo antes de que el blog crezca.
+
+### Servicios de imagen separados
+
+`image.service` acepta ahora una clave `build` y otra `runtime`: una para páginas prerenderizadas y otra para las bajo demanda. Para un sitio estático no cambia nada, pero abre la puerta a usar un CDN de imágenes solo en producción.
+
+### Experimentales
+
+`parallelPrerender` renderiza páginas estáticas en hilos de trabajo, y `redirectPage` te deja personalizar la página HTML de las redirecciones. Con 47 páginas, el primero no te va a dar mucho; con miles, sí. Siguen siendo experimentales, así que no los activaría en producción todavía.
+
+---
+
+## Orden recomendado para migrar
+
+1. **Migra Tailwind a la versión 4** con el plugin de Vite, en una rama aparte, mientras sigues en Astro 5.
+2. **Actualiza la configuración de colecciones** al formato con `loader` y corrige `slug` y `render()`. La Content Layer API ya existe en Astro 5, así que el `loader` y el cambio de `slug` a `id` puedes adelantarlos antes del salto. El import de `astro/zod` no lo probé en Astro 5: comprueba que tu versión lo soporta.
+3. **Sube Node a 22.23.4 o superior** y cambia `node-version` en tu workflow de CI.
+4. **Actualiza Astro** y las integraciones oficiales:
+
+   ```bash
+   npx @astrojs/upgrade
+   ```
+
+5. **Compila y compara.** Revisa breadcrumbs, líneas de metadatos y bloques de código en claro y oscuro.
+6. **Ejecuta `astro build --timings`** y guarda el resultado como referencia.
+
+---
+
+## Conclusión
+
+La migración de Astro 5 a 7 es **más pequeña de lo que parece sobre el papel, salvo por un punto: Tailwind**. El código propio se reduce a mover la config de colecciones y cambiar `slug` y `render()`. A cambio, el CSS generado se redujo un 43 % sin tocar nada más.
+
+Tres cosas me llevo:
+
+1. **Confirma tu versión de Node con el mensaje de error, no con la documentación.** Una diferencia de patch bastó para romper el build.
+2. **Si usas `@astrojs/tailwind`, planifica la migración a Tailwind 4 antes** de pensar en Astro 7. Forzar las dependencias funciona en una prueba, pero no es un estado en el que quiera dejar un proyecto.
+3. **Compilar sin errores no es lo mismo que verse igual.** Los espacios en blanco y los bloques de código merecen una revisión visual.
+
+Mi sitio sigue en Astro 5.18 mientras decido cuándo hacer el salto de Tailwind. Cuando lo haga, escribiré el resultado.
+
+---
+
+## Fuentes y recursos
+
+- <a
+    href="https://astro.build/blog/astro-740"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    Astro — Notas de la versión 7.4
+  </a>
+- <a
+    href="https://astro.build/blog/whats-new-october-2026/"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    Astro — Novedades de octubre de 2026
+  </a>
+- <a
+    href="https://docs.astro.build/en/guides/upgrade-to/v7/"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    Guía oficial de migración a Astro 7
+  </a>
+- <a
+    href="https://docs.astro.build/en/guides/upgrade-to/v6/"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    Guía oficial de migración a Astro 6
+  </a>
+- <a
+    href="https://docs.astro.build/en/guides/styling/#tailwind"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    Astro — Tailwind en proyectos Astro
+  </a>
