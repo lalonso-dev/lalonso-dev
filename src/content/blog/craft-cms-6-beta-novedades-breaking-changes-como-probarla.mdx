@@ -1,0 +1,230 @@
+---
+title: "Craft CMS 6 beta: qué trae, qué rompe y cómo probarla sin jugártela"
+description: "El 10 de noviembre de 2026 llegó la primera beta de Craft CMS 6 sobre Laravel, con PHP 8.5 como requisito y estable prevista para marzo. Resumen de las novedades (Ask AI, workflows, Compare), los breaking changes que sí te afectan y los pasos para probarla en local desde Craft 5."
+date: 2026-11-18
+cover: "/images/blog/craft-cms-6-beta.webp"
+categories: ["Noticias", "Craft CMS", "Backend"]
+readingTime: 9
+featured: false
+draft: false
+tags:
+  [
+    "craft-cms",
+    "craft-6",
+    "laravel",
+    "php",
+    "migracion",
+    "beta",
+    "cms",
+    "backend",
+  ]
+---
+
+## La beta ya está aquí
+
+Pixel & Tonic publicó la primera beta de Craft CMS 6 el **10 de noviembre de 2026**, seis meses después de la primera alpha. Ya no es una promesa de conferencia: es un `composer require` que puedes ejecutar hoy.
+
+Si necesitas el contexto de por qué Craft abandonó Yii 2 por Laravel, lo conté en [Craft CMS 6 y Laravel: todo lo que necesitas saber](/blog/craft-cms-6-laravel-todo-lo-que-necesitas-saber). Aquí me centro en lo que cambia con esta beta: el calendario real, las novedades y, sobre todo, **lo que puede romper tu proyecto**.
+
+> **Aviso:** este artículo resume el anuncio oficial, el changelog y la guía de actualización de Craft. No he migrado un proyecto real a la beta, así que no encontrarás aquí "qué me falló a mí". Para los detalles exactos, la fuente de verdad es el changelog de la rama `6.x`.
+
+---
+
+## Lo esencial en 30 segundos
+
+| Dato                     | Valor                                                                          |
+| ------------------------ | ------------------------------------------------------------------------------ |
+| Versión                  | `6.0.0-beta.1`, publicada el 10 de noviembre de 2026                           |
+| Requisito de PHP         | **PHP 8.5** (`php: ^8.5` en el `composer.json` del paquete)                    |
+| Duración de la beta      | Unos cuatro meses, según Pixel & Tonic                                         |
+| Versión estable          | Prevista para **marzo** (de 2027)                                              |
+| Estado                   | "(Mayormente) completa en funciones"; queda corrección de bugs, pulido del panel y documentación |
+| Soporte de Craft 5       | Actualizaciones de seguridad hasta **marzo de 2032**                           |
+| ¿Producción?             | No. La guía de actualización sigue avisando de que no está lista               |
+
+Dos detalles que conviene notar. Primero, el calendario **se retrasó**: en septiembre de 2025 el plan era beta en el tercer trimestre de 2026 y estable en el cuarto. Ahora la beta llega en noviembre y la estable en marzo. Segundo, **PHP 8.5** es un requisito duro. Si tu hosting o tu imagen de Docker está en 8.3 o 8.4, esa es la primera tarea.
+
+---
+
+## Las novedades que más importan
+
+El anuncio habla de más de 250 funciones y mejoras desde Craft 5. Estas son las que cambian cómo trabajas.
+
+### Para editores y equipos de contenido
+
+- **Panel de control reconstruido** con Vue e Inertia: modo oscuro (preferencia Light, Dark o System), tarjetas con portada, menús de navegación desplegables, centro de notificaciones y un diseño pensado para móvil y tablet.
+- **Paleta de comandos** con `⌘K` / `Ctrl+K`: busca contenido, ajustes, páginas y documentación, y ejecuta acciones.
+- **Compare**: comparación lado a lado de borradores, revisiones, sitios, o dos entradas distintas, con flechas para copiar valores entre versiones.
+- **Workflows de publicación y Releases** (workflows en Pro y Enterprise). Los cambios en entradas habilitadas de una sección con workflow se guardan como borrador y esperan aprobación por grupos. Las Releases agrupan borradores para publicarlos juntos de forma atómica.
+- **Actividad y comentarios** con comentarios en Markdown y menciones, **Live Preview** acoplado a la derecha y copiar/pegar valores de campos.
+- **Assets**: subidas en segundo plano, detección de duplicados, metadatos embebidos, análisis de color, BlurHash y deshacer/rehacer en el editor de imágenes.
+
+### Ask AI
+
+El cambio más llamativo. Un asistente (`⌘I`) que usa las herramientas MCP de Craft **con los permisos del usuario que ha iniciado sesión**. Propone cambios, y nada se guarda hasta que el usuario los aplica y los guarda. Viene **desactivado**: un administrador tiene que configurar proveedor y modelo en *Settings → Connections*.
+
+Craft también expone servidores MCP (autenticados y públicos) con los scopes `mcp:read`, `mcp:write` y `mcp:admin`, y un comando `mcp:serve`. Es la misma dirección que tomó WordPress 7 con su MCP Adapter, pero aquí con permisos de Craft de por medio.
+
+### Para developers
+
+- **Laravel de verdad**: routing, auth, sesiones, correo, migraciones y modo mantenimiento corren sobre Laravel. Puedes cargar **vistas Blade desde Twig**, gestionar **modelos Eloquent como elements** y usar Laravel Debugbar en lugar del Debug Toolbar.
+- **Auth moderna**: login con Socialite y tokens de acceso personal con Passport (también para GraphQL con los scopes `graphql:read` y `graphql:write`).
+- **Filesystems como discos de Laravel**: configuras `config/filesystems.php` y los volúmenes apuntan a discos.
+- **Más soporte de imágenes**: driver libvips y formatos como HEIC, JPEG XL, TIFF y BMP.
+- **SQLite** como base de datos soportada.
+- **Twig**: nuevos filtros `|anchors` (sustituye al plugin Anchors), `|sanitize` y `|hexdec`, la etiqueta `{% render %}` y la función `craftCommand()`.
+- **Campos**: un campo **Markdown** nativo, pestañas laterales y columnas de tipo Link en las tablas.
+
+---
+
+## Los breaking changes que sí te afectan
+
+La promesa de Craft era "cambios mínimos", y para el código de Twig y los plugins con el adaptador suele cumplirse. Pero la lista de cambios de comportamiento es larga, y varios son silenciosos. Estos son los que revisaría primero.
+
+### Config y entorno
+
+Las variables de entorno de base de datos pasan a las de Laravel:
+
+| Antes (Craft 5)         | Ahora (Craft 6)  |
+| ----------------------- | ---------------- |
+| `CRAFT_DB_DRIVER`       | `DB_CONNECTION`  |
+| `CRAFT_DB_SERVER`       | `DB_HOST`        |
+| `CRAFT_DB_PORT`         | `DB_PORT`        |
+| `CRAFT_DB_USER`         | `DB_USERNAME`    |
+| `CRAFT_DB_PASSWORD`     | `DB_PASSWORD`    |
+| `CRAFT_DB_DATABASE`     | `DB_DATABASE`    |
+| `CRAFT_DB_TABLE_PREFIX` | `DB_TABLE_PREFIX`|
+| `CRAFT_DEV_MODE`        | `APP_DEBUG`      |
+| `CRAFT_SECURITY_KEY`    | se elimina (`APP_KEY`) |
+
+Además, hay una lista de ajustes obsoletos que migran a la config de Laravel (sesiones, cookies, CSRF, hashing, proxies de confianza) y otra de ajustes que **ya no tienen ningún efecto**, como `omitScriptNameInUrls`, `usePathInfo`, `enableBasicHttpAuth` o `useFileLocks`. Con el adaptador de Yii 2 siguen aceptándose los de Craft 5.
+
+### Estructura del proyecto
+
+La guía manual de actualización lo deja claro: el proyecto adopta la estructura de Laravel. `web/` pasa a `public/`, `config/*` a `config/craft/`, `translations/` a `lang/` y `templates/` a `resources/views/`. `bootstrap.php` desaparece y se sustituye por el bootstrap de Laravel.
+
+### Comportamiento que cambia sin avisar
+
+- **Paginación**: usa el parámetro de consulta `pageTrigger` en lugar de segmentos de ruta. Si tienes URLs indexadas tipo `/blog/p2`, planifica redirecciones.
+- **URLs base**: `url('')` y `siteUrl('')` ya no terminan en barra final por defecto (se controla con `addTrailingSlashesToUrls`).
+- **Sesiones**: los visitantes anónimos **ya no reciben sesión ni cookies de sesión**. Craft recomienda una cabecera `Referrer-Policy` como `same-origin` o `strict-origin-when-cross-origin`.
+- **Logout**: exige un POST con protección CSRF. Un simple enlace de "Cerrar sesión" deja de funcionar.
+- **Consultas de elements**: `orderBy()`, `select()` y `groupBy()` ahora tratan los strings como nombres de columna. Cualquier otra expresión SQL necesita `expression()` en Twig o `DB::raw()` en PHP.
+- **Estado de un element**: guardar ya no lo habilita a la fuerza si no se envía estado, y el parámetro `setEnabled` se ignora.
+- **Enrutado**: `routes.php` deja de ser el camino. Las rutas del sitio en `config/craft/routes.php` siguen funcionando con el adaptador, pero están obsoletas; lo nuevo es el routing de Laravel.
+- **Login**: `loginPath` pasa a valer `false` por defecto.
+- **Correo**: los transportes y los ajustes en `projectConfig.email` desaparecen a favor de la config `mail` de Laravel.
+- **Migraciones**: las migraciones de Craft y Yii se eliminan en favor de las de Laravel. Si tu código las usaba, tendrás que adaptarlo.
+
+### Contenido y assets
+
+- **Categories, Global Sets y Tags quedan obsoletos** y pueden "entrificarse" (convertirse en entries) durante la actualización. Si quieres controlar cómo, ejecuta los comandos `entrify/*` **antes**, en tu Craft 5.
+- Ya **no puedes borrar un asset o una entrada del único sitio en el que existe**.
+- Se retiran de los campos las opciones "Show unpermitted entries/files" y "Allowed File Types"; se sustituyen por las reglas de condición "Viewable" y "File Type".
+- Al actualizar desde Craft 5 se **limpia el índice de transformaciones** de imágenes, y `generateTransformsBeforePageLoad` pasa a ser un ajuste del disco.
+- **GraphQL**: las mutaciones de Matrix fallan si las entradas nuevas no aparecen en `sortOrder`, y cada entrada de Matrix solo puede indicar un tipo.
+- El filtro `|money` renombra su argumento `formatLocale` a `locale`, y la librería de imágenes pasa de `pixelandtonic/imagine` a `intervention/image`.
+
+### Algo que te va a pillar
+
+La tabla `queue` **se reconstruye** durante la actualización. Los trabajos pendientes se pierden. Deja que la cola termine antes de actualizar.
+
+---
+
+## El adaptador de Yii 2: tu red de seguridad
+
+Para que la transición sea viable, Craft ofrece `craftcms/yii2-adapter`, un paquete opcional que mantiene vivas las APIs basadas en Yii de Craft 5. Con él instalado:
+
+- Tus plugins y módulos de Craft 5 pueden seguir funcionando mientras los actualizas.
+- Los ajustes de config de Craft 5 se siguen aceptando.
+- `craft:on` y `craft:off` siguen funcionando, y el correo usa el mailer `craft-transport` hasta que elijas uno de Laravel.
+
+No es un polyfill de PHP ni relaja los requisitos del sistema. Y no es para siempre: la guía recomienda mantenerlo hasta resolver los avisos de deprecación nuevos y luego "expulsarlo".
+
+Para ayudarte con eso, la beta incluye la utilidad **Yii2 Loose Ends**, que rastrea qué sigue dependiendo del adaptador, arregla algunos casos, actualiza plugins que ya no lo necesitan y sugiere prompts de IA para el resto.
+
+Sobre plugins de terceros: la mayoría de los de Pixel & Tonic ya soportan Craft 5 y 6 a la vez a través del adaptador, y la Plugin Store marca los que lo necesitan y lo instala con ellos. Las versiones mayores exclusivas de Craft 6 llegarán después.
+
+---
+
+## Cómo probarla en local desde Craft 5
+
+Haz esto **en una copia local o en staging, nunca en producción**.
+
+### 1. Prepara el Craft 5
+
+- Actualiza a la última 5.x y todos tus plugins a su última versión compatible. **No hay salto directo desde Craft 4**.
+- Resuelve los avisos de deprecación pendientes.
+- Pasa a PHP 8.5.
+- Deja que la cola termine y haz una copia de la base de datos.
+- Anota tu adaptador de correo en *Settings → Email*.
+
+### 2. Usa la herramienta oficial
+
+```bash
+# Instala el ayudante de forma global
+composer global require craftcms/craft6-revamp
+
+# Ejecútalo en la raíz del proyecto (pide confirmación antes de acciones destructivas)
+craft6-revamp
+```
+
+La herramienta automatiza gran parte del trabajo previo y añade el adaptador de Yii 2. Después te indica los siguientes pasos, que en un proyecto con DDEV suelen ser:
+
+```bash
+ddev restart
+ddev composer update
+ddev artisan craft:setup:publish
+ddev artisan key:generate
+```
+
+### 3. Ejecuta las migraciones
+
+```bash
+ddev artisan craft:up
+# o bien
+ddev php craft up
+```
+
+Son unas dos docenas de migraciones ligeras que, sobre todo, sustituyen nombres de clases heredados. No tocan tu contenido.
+
+### 4. Ajusta lo que falte
+
+- Añade la configuración de tus discos en `config/filesystems.php`, con **los mismos handles** que tus filesystems actuales. Sus valores están en la clave `fs` de `project.yaml`, cambiando `$ENV_VAR` por `env('ENV_VAR')`.
+- Cambia las variables de entorno según la tabla de arriba, y añade `CACHE_STORE=file`, `SESSION_DRIVER=file` y un `APP_KEY` vacío que se generará después.
+- Si un plugin da errores durante la beta, puedes desactivarlos todos con `CRAFT_DISABLED_PLUGINS="*"` en tu `.env`. Un fallo de plugin puede dejar el proyecto a medio actualizar.
+- Revisa cron, daemons y workers de cola. Los comandos externos pasan a la sintaxis de Artisan, con `:` en lugar de `/`.
+
+> **Nota:** la guía oficial sigue escrita con ejemplos de la alpha (`^6.0.0-alpha.1`). Para la beta tendrás que apuntar tu `composer.json` a `6.0.0-beta.1`, y es posible que necesites ajustar `minimum-stability`. Compruébalo con `composer require` antes de dar nada por hecho.
+
+Un proyecto **nuevo** es más sencillo: sigue la guía de instalación de la documentación 6.x.
+
+---
+
+## ¿Deberías migrar ya?
+
+Mi lectura, según lo publicado:
+
+- **Proyectos en producción**: no. La propia documentación sigue marcando el upgrade como no apto para producción, y el equipo calcula unos cuatro meses de beta. Con Craft 5 tienes seguridad garantizada hasta marzo de 2032, así que no hay prisa.
+- **Agencias y freelancers**: es buen momento para levantar un entorno local y probar **tus plugins y módulos custom contra el adaptador**. Ahí es donde saldrán los problemas reales, y mejor encontrarlos en noviembre que en marzo.
+- **Proyectos nuevos que arrancan ahora**: depende del plazo. Si el lanzamiento es posterior a marzo, empezar en Craft 6 evita una migración. Si sale antes, quédate con Craft 5.
+- **Equipos con PHP antiguo**: planifica ya la subida a PHP 8.5. Es la parte que más depende de infraestructura y no de Craft.
+
+---
+
+## Conclusión
+
+La beta de Craft 6 convierte la migración a Laravel en algo tangible y bastante cuidado: un adaptador para no romper plugins, una herramienta oficial de actualización y una utilidad para ir quitándote del adaptador a tu ritmo. Las novedades para editores (Compare, workflows, Releases, paleta de comandos) son un salto real, y Ask AI muestra hacia dónde va el CMS, con la aprobación humana por delante.
+
+Pero "cambios mínimos" no significa "ningún cambio". Sesiones anónimas sin cookie, paginación por query string, logout por POST o las consultas SQL que ahora exigen `expression()` son el tipo de detalle que no avisa y rompe en producción. Pruébala ya, revisa tus plugins, y deja la migración de producción para después de la estable.
+
+---
+
+## Fuentes
+
+- <a href="https://craftcms.com/blog/craft-6-beta-released" target="_blank" rel="noopener noreferrer">Craft 6 Beta Released</a> — craftcms.com
+- <a href="https://github.com/craftcms/cms/releases/tag/6.0.0-beta.1" target="_blank" rel="noopener noreferrer">Release 6.0.0-beta.1</a> — GitHub, craftcms/cms
+- <a href="https://github.com/craftcms/cms/blob/6.x/CHANGELOG.md" target="_blank" rel="noopener noreferrer">CHANGELOG.md (rama 6.x)</a> — GitHub, craftcms/cms
+- <a href="https://craftcms.com/docs/6.x/upgrade" target="_blank" rel="noopener noreferrer">Upgrading from Craft 5 to Craft 6</a> — craftcms.com/docs
+- <a href="https://packagist.org/packages/craftcms/cms" target="_blank" rel="noopener noreferrer">craftcms/cms</a> — Packagist
+- <a href="https://craftcms.com/blog/laravel" target="_blank" rel="noopener noreferrer">Craft's Going Laravel</a> — craftcms.com
