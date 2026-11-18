@@ -1,0 +1,282 @@
+---
+title: "Recuento de vulnerabilidades de noviembre de 2026: nginx2Root, OpenSSH en Alpine, Node.js, Windows y más"
+description: "Hoy llegó el parche de nginx2Root (cinco fallos de memoria en nginx). Recopilo lo más importante de las últimas semanas en servidores, runtimes y sistemas: OpenSSH en musl, 16 CVE en Node.js, el zero-day de Outlook, los últimos del catálogo KEV de CISA y qué parchear primero."
+date: 2026-11-18
+cover: "/images/blog/recuento-vulnerabilidades-noviembre-2026.webp"
+categories: ["Seguridad", "Noticias", "Backend"]
+readingTime: 11
+featured: true
+draft: false
+tags:
+  [
+    "seguridad",
+    "nginx",
+    "openssh",
+    "nodejs",
+    "windows",
+    "cve",
+    "cisa",
+    "linux",
+    "devops",
+  ]
+---
+
+## Qué ha pasado este mes
+
+Noviembre de 2026 está siendo un mes cargado de parches. **Hoy, 18 de noviembre**, nginx publicó una versión de seguridad con diez correcciones, entre ellas cinco fallos de memoria que Xint ha bautizado **nginx2Root**. En las últimas dos semanas también han salido arreglos para OpenSSH, Node.js, Windows y varios productos que CISA ya marca como explotados.
+
+Este artículo es un recuento ordenado por urgencia. Para cada hallazgo te digo qué es, a quién afecta, si hay explotación confirmada y qué hacer. Lo escribo el mismo día que sale lo de nginx, así que **algunos detalles pueden cambiar** a medida que los fabricantes actualicen sus avisos. Donde las fuentes se contradicen, lo señalo.
+
+---
+
+## Resumen: qué mirar primero
+
+| Hallazgo                                | Afecta a                                     | ¿Explotado?                          | Acción                                       |
+| --------------------------------------- | -------------------------------------------- | ------------------------------------ | -------------------------------------------- |
+| **nginx2Root** (CVE-2026-123007 y otros 4) | nginx 1.9.5 a 1.31.8 según el fallo         | No confirmado, sin PoC público       | Actualiza a 1.30.7 / 1.31.9 y **reinicia**   |
+| **OpenSSH en musl** (CVE-2026-123158)   | Alpine, OpenWrt y otros musl sin PAM         | Sí, en el catálogo KEV de CISA       | OpenSSH 10.6p2 o `PasswordAuthentication no` |
+| **Node.js**, 16 CVE (7 altos)           | Node 22, 24 y 26                             | No indicado                          | 22.23.5, 24.22.3 o 26.13.1                   |
+| **Outlook** (CVE-2026-124194)           | Microsoft 365 Apps, Office LTSC 2021 y 2024  | Sí, zero-day                         | Parche de Office (no basta con Windows Update) |
+| **Otros del KEV**                       | GPUStack, FreeSWITCH, IBM Aspera, SonicWall  | Sí                                   | Actualiza según el producto                  |
+
+---
+
+## 1. nginx2Root: cinco fallos de memoria en nginx
+
+El 18 de noviembre nginx publicó **1.30.7** (estable) y **1.31.9** (mainline), con diez avisos de seguridad. Cinco de ellos forman nginx2Root, descubierto por el equipo de Xint, que lo reportó a F5 el 16 de octubre. Uno nació mientras preparaban el concurso ZeroDay Cloud 2026, y un escaneo automatizado encontró los otros cuatro.
+
+### Los cinco CVE
+
+| CVE                 | Qué es                                              | Cuándo estás expuesto                                              | Versiones afectadas | Gravedad según nginx |
+| ------------------- | --------------------------------------------------- | ------------------------------------------------------------------ | ------------------- | -------------------- |
+| **CVE-2026-123007** | Desbordamiento de enteros en el control de flujo de HTTP/2, con lectura y escritura fuera de límites en el heap | HTTP/2 activado                                                    | 1.9.5 a 1.31.8      | **Major**            |
+| CVE-2026-123633     | Use-after-free en HTTP/2                            | HTTP/2 y reenvío a un backend (`proxy_pass`)                       | 1.19.7 a 1.31.8     | Medium               |
+| CVE-2026-121810     | Use-after-free en HTTP/3 (QUIC)                     | HTTP/3 y reenvío a un backend                                      | 1.25.0 a 1.31.8     | Medium               |
+| CVE-2026-123634     | Use-after-free en el resolver DNS                   | `resolver`, `proxy_pass` derivado de la petición y `mirror` con `mirror_request_body off` | 0.6.18 a 1.31.8 | Medium |
+| CVE-2026-113425     | Use-after-free en el proxy de correo                | `mail` con `proxy on` y `auth_http`                                | 0.5.33 a 1.31.8     | **Major**            |
+
+El más serio es el primero. Según Xint, el código vulnerable viene de la primera versión con soporte HTTP/2 y **no exige autenticación**. El ataque abusa de la ventana de control de flujo: el cliente retiene datos en la cola de salida de nginx, sube la ventana de la conexión y resetea los streams. Al limpiar, nginx devuelve crédito sin comprobar un límite superior, la ventana supera 2³¹−1 y un cálculo sin signo se desborda. Después, una copia de memoria con una longitud absurda corrompe el heap.
+
+### ¿Es realmente RCE? Aquí las fuentes no coinciden
+
+- **Xint** (los descubridores) afirma que el exploit para CVE-2026-123007 funcionó contra un endpoint HTTPS público, en AWS, GCP y Azure con tráfico normal concurrente. Ha retenido los pasos finales.
+- **Security Boulevard** resume que los fallos permiten tirar workers sin autenticación y que la ejecución de código solo es posible "donde ASLR está desactivado o se esquiva".
+- **Explotación real**: Xint no informa de ataques en la naturaleza, y ninguno de los cinco CVE está (a fecha de hoy) en el catálogo KEV de CISA.
+
+Mi lectura prudente: **trátalo como crítico**. Aunque el peor caso (RCE) sea difícil de reproducir, tirar workers de nginx de forma remota ya es un problema para cualquier servicio de producción, y la publicación de detalles técnicos acorta el camino hacia exploits públicos.
+
+### La cadena hasta root: nginx más SCTP
+
+Xint también encontró un fallo en el envío SCTP del **kernel de Linux** (introducido en la 4.15, en 2018) que permite saltarse KASLR y llamar a una función arbitraria del kernel. Encadenado con nginx2Root, un atacante que ya ejecuta código como worker de nginx puede llegar a **root**, y según los autores también salir de un contenedor Docker al host. No se ha asignado CVE a ese fallo de kernel en la publicación.
+
+Mientras llega el parche de tu distribución, puedes impedir que se cargue el módulo SCTP:
+
+```bash
+# Evita que el módulo SCTP se cargue automáticamente
+echo 'install sctp /bin/false' | sudo tee /etc/modprobe.d/disable-sctp.conf
+```
+
+Esto **no descarga** un módulo ya cargado ni desactiva SCTP si está compilado dentro del kernel.
+
+### Qué hacer hoy
+
+**1. Mira qué versión tienes y qué funciones usas:**
+
+```bash
+nginx -v
+nginx -T 2>/dev/null | grep -nE 'http2|http3|quic|resolver|mirror|^\s*mail\s*\{|auth_http'
+```
+
+**2. Actualiza a 1.30.7 o 1.31.9 y reinicia.** Un `reload` **no basta**: las conexiones existentes siguen en los workers viejos. Haz un `restart` o un cambio de binario en caliente.
+
+**3. Cuidado con los paquetes de tu distribución.** Las distros suelen parchear sin cambiar el número de `nginx -v`, así que compara la revisión completa del paquete con el aviso de tu proveedor. Cuando se comprobó, Alpine 3.24 y edge tenían `1.30.7-r0`, pero **Alpine 3.22 y 3.23, Debian, Ubuntu y OpenResty** aún no tenían arreglo. En Docker, descarga de nuevo la imagen (`nginx:1.30.7` o `nginx:1.31.9`).
+
+**4. Si no puedes actualizar ya, mitiga:**
+
+```nginx
+# CVE-2026-123007 y CVE-2026-123633: desactiva HTTP/2 (rompe clientes gRPC)
+server {
+    listen 443 ssl;
+    http2 off;          # nginx 1.25.1 o posterior
+    # en 1.9.5 a 1.25.0, quita "http2" de la directiva listen
+}
+
+# CVE-2026-121810: desactiva HTTP/3
+http3 off;
+add_header Alt-Svc 'clear';
+```
+
+- **CVE-2026-123634**: usa grupos de upstream fijos en lugar de un `proxy_pass` derivado de la petición, y desactiva `mirror` o apúntalo a destinos fijos.
+- **CVE-2026-113425**: enlaza los listeners de correo a loopback o restríngelos con firewall.
+- Ojo: desactivar HTTP/2 **no** bloquea los otros tres fallos ni el bucle infinito de TLS 1.3 (más abajo).
+
+**5. Si usas el controlador ingress-nginx de Kubernetes**, no mires solo su número de versión: está retirado y, según lo publicado, no habrá parche.
+
+### Los otros cinco de la misma versión
+
+La 1.30.7 / 1.31.9 corrige además:
+
+| CVE             | Qué es                                                 | Gravedad |
+| --------------- | ------------------------------------------------------ | -------- |
+| CVE-2026-118899 | Bucle infinito al leer el cuerpo de la petición con TLS 1.3. Cada conexión manipulada bloquea un worker hasta agotarlos todos | **Major** |
+| CVE-2026-120967 | Salto de SNI al validar certificados de cliente en `stream` | Medium |
+| CVE-2026-125283 | Desbordamiento de búfer con `alias` y `try_files`      | Minor    |
+| CVE-2026-123640 | Validación insuficiente en `ssl_preread` de `stream`   | Minor    |
+| CVE-2026-120993 | Desreferencia nula con PROXY protocol v2 (solo 1.31.x) | Minor    |
+
+Y en octubre (1.30.6 / 1.31.7) hubo otra tanda de cinco avisos de gravedad media: desbordamientos de búfer con `alias`, inyección en el cuerpo de peticiones HTTP/3, falsificación de sesión con TLS session tickets y un use-after-free con I/O asíncrona. Si te quedaste en octubre, la actualización de hoy ya los incluye.
+
+---
+
+## 2. OpenSSH en musl: contraseñas largas que abren cuentas sin contraseña
+
+Apodado **\*sshole**, el fallo se identifica como **CVE-2026-123158** (CVSS 8.1) y lo corrige **OpenSSH 10.6p2**, publicado el 5 de noviembre. **CISA lo añadió al catálogo KEV el 9 de noviembre**, con plazo federal hasta el 12.
+
+### Cómo funciona
+
+No es corrupción de memoria: es un fallo de **lógica de autenticación** que nace de tres comportamientos que, juntos, se vuelven peligrosos:
+
+1. La función `crypt()` de **musl libc** rechaza contraseñas de más de 256 bytes y devuelve el texto `*`.
+2. En los ficheros de contraseñas, `*` significa "esta cuenta no tiene contraseña válida".
+3. Desde 2016, OpenSSH puede calcular el hash de la contraseña recibida con la configuración de otra cuenta para dificultar la enumeración de usuarios. Si el campo guardado es `*` y `crypt()` devuelve `*`, **coinciden y el acceso se concede**.
+
+Basta con enviar una contraseña de entre 257 y 1.024 bytes a una cuenta con `*`.
+
+### ¿Estás afectado?
+
+Deben cumplirse **todas** estas condiciones:
+
+- Sistema basado en **musl**: Alpine, OpenWrt con OpenSSH instalado, Buildroot, Yocto con musl.
+- **Sin PAM** (el valor por defecto de Alpine, o `UsePAM no`).
+- Autenticación por contraseña activada (el valor por defecto).
+- Al menos una cuenta con `*` en el campo de contraseña (por ejemplo root o usuarios solo con clave) y otra con una contraseña real.
+
+**No afecta** a distribuciones con glibc, a autenticación con PAM, a `PasswordAuthentication no`, a Dropbear ni a contenedores sin sshd. En las imágenes oficiales de Alpine en AWS y Azure, el usuario `alpine` puede usar `doas` sin contraseña, así que un acceso puede acabar en root.
+
+### Qué hacer
+
+```bash
+# Alpine: actualiza y REINICIA sshd (actualizar el paquete no reemplaza el proceso en ejecución)
+apk upgrade -U -a
+rc-service sshd restart
+```
+
+Si no puedes actualizar, comprueba antes que tu clave SSH funciona y desactiva las contraseñas con `PasswordAuthentication no`. Reconstruye las imágenes Docker y de nube desde una base ya corregida. Revisa los registros (en Alpine, `/var/log/messages`) buscando `Accepted password for` en cuentas que no deberían tener contraseña: **trátalo como un compromiso**. Y desconfía de los scripts "checker" o PoC de origen incierto: usa solo las versiones oficiales del paquete.
+
+---
+
+## 3. Node.js: 16 vulnerabilidades, casi todas en HTTP/2 y TLS
+
+El **11 de noviembre** el proyecto publicó versiones de seguridad para tres líneas: **22.23.5**, **24.22.3** y **26.13.1**. Son **16 CVE: 7 altos, 6 medios y 3 bajos**, según la página oficial del proyecto.
+
+Los más relevantes:
+
+- **CVE-2026-123864 (alto)**: una escritura TLS de longitud cero reentra en el parser HTTP (`llhttp`) y provoca use-after-free y lecturas fuera de límites que pueden **filtrar memoria del servidor al cliente, incluidas claves privadas TLS**. Afecta a servidores HTTPS (no al `node:http` en claro) en las tres líneas.
+- **CVE-2026-123863 (alto)**: un cliente HTTP/2 sin autenticar puede **tumbar el servidor** (afecta a 24.x y 26.x).
+- **CVE-2026-123865, 123866 y 123874 (altos)**: fugas de memoria y descriptores, y use-after-free en el cierre de streams HTTP/2.
+- **CVE-2026-123872 (alto)**: durante una renegociación TLS 1.2 el cliente puede cambiar el `servername` y **saltarse la autenticación por certificado de cliente por host**.
+- Entre los medios hay un salto de mTLS por contextos SNI solo con CA (CVE-2026-123867), credenciales de proxy visibles en mensajes de error (CVE-2026-123871) y reutilización de sesiones TLS entre políticas de CA distintas (CVE-2026-123877).
+- Entre los bajos, dos fallos del **Permission Model**, el modelo de permisos de Node.
+
+Las 3 líneas están afectadas por casi todos (11 de los 16 llegan a Node 22; los 16 a Node 24 y 26). Si usas **Node 20 o anteriores**, recuerda que Node avisa de que las versiones al final de su vida **siempre** están afectadas: la solución es migrar, no parchear.
+
+```bash
+node -v   # debe ser 22.23.5, 24.22.3 o 26.13.1 como mínimo, según tu línea
+```
+
+Si despliegas en contenedores, reconstruye las imágenes. Y si tienes certificados de cliente por host con SNI, revisa sobre todo CVE-2026-123872 y CVE-2026-123867.
+
+---
+
+## 4. Microsoft: el zero-day de Outlook y lo que mueve el Patch Tuesday
+
+El Patch Tuesday del **10 de noviembre** corrigió alrededor de **1.100 vulnerabilidades** (las cifras varían según la fuente: de unas 1.090 a más de 1.200), unas 63 de ellas críticas.
+
+### El único explotado: Outlook (CVE-2026-124194)
+
+Se puntúa solo como moderado (CVSS 6.5), pero **se explota activamente**. Al abrir un archivo de Office malicioso, Outlook puede conectar a una ubicación de red del atacante **sin el aviso habitual de contenido externo**, y eso filtra el hash **NTLMv2** del usuario, que se puede relayar para autenticarse como él o descifrar offline. Afecta a Microsoft 365 Apps for Enterprise y a Office LTSC 2021 y 2024. CISA lo añadió al KEV con plazo hasta el **24 de noviembre**.
+
+Un detalle importante: **instalar la actualización acumulativa de Windows no corrige este fallo**. Hace falta el parche de Office.
+
+### Otros críticos a vigilar
+
+- **Windows LDAP** (CVE-2026-119958, CVSS 9.8): RCE que amenaza a controladores de dominio y Active Directory.
+- **Exchange Server** (CVE-2026-118207, CVSS 9.8): se puede activar con solo poder enviar un correo a la organización.
+- **Xbox Live Networking Service** (CVE-2026-112967, CVSS 9.8): RCE para atacantes en la misma red.
+
+Prioridad práctica: controladores de dominio y Exchange primero, después cualquier cosa que exponga IIS, Schannel o RPC a redes no confiables.
+
+---
+
+## 5. Los demás del catálogo KEV de CISA
+
+En las últimas semanas CISA ha añadido varios fallos explotados. Los que más interesan a quien administra servidores:
+
+| CVE              | Producto                         | Qué es                                                         | Añadido  |
+| ---------------- | -------------------------------- | -------------------------------------------------------------- | -------- |
+| CVE-2026-102895  | GPUStack (antes de 2.2.0)        | Salto de autenticación: acceso de administrador sin credenciales, vía proxy inverso o la cabecera `X-GPUStack-Real-IP` | 9 nov |
+| CVE-2026-116779  | FreeSWITCH (hasta 1.11.2)        | Inyección de comandos en mensajes SIP MESSAGE (CVSS 9.8). Corregido en 1.11.3. SignalWire confirmó la explotación | 9 nov |
+| CVE-2026-123158  | OpenSSH en musl                  | Ver sección 2                                                  | 9 nov |
+| CVE-2026-123218  | IBM Aspera Faspex 5.0.0 a 5.0.19 | Salto de autorización con privilegios de administrador (CVSS 9.8 según IBM). Corregido en 5.0.19 PL1 | 9 nov |
+| CVE-2026-19868   | SonicWall SSLVPN                 | Salto de autenticación                                         | 6 nov |
+
+Los cuatro del 9 de noviembre tenían plazo federal hasta el 12. Pásalos por tu inventario aunque no seas una agencia: si un producto está en el KEV, hay explotación real.
+
+---
+
+## 6. Navegadores y otros
+
+- **Chrome**: la versión **157.0.8103.50** corrige **CVE-2026-125350**, que según el resumen de CSO Online se explota activamente. No he podido contrastarlo con las notas oficiales de Chrome, así que compruébalo en el blog de Chrome Releases. Actualiza y reinicia el navegador.
+- **Firefox 160** corrige 99 CVE, 57 de ellos altos, incluido un use-after-free con escape de sandbox (CVE-2026-124907) que también afecta a Thunderbird.
+- **SAP (ICM2Shell)**: dos CVE (CVE-2026-76964 y CVE-2026-89126) con CVSS 10. Onapsis publicó un exploit funcional para RCE y denegación de servicio sin autenticar, y el vector está expuesto aunque ninguna aplicación use WebSockets, porque la función viene activada por defecto. Esto procede de una sola fuente de las que consulté, así que confírmalo con el aviso de SAP si lo usas.
+- **Adobe**: nueve boletines con 110 CVE (22 críticos), sin explotación conocida.
+
+---
+
+## Lo que ya cubrí en el blog
+
+Este mes también salieron dos fallos que ya tienen su propio artículo:
+
+- **PHP**: parches del 21 de octubre para dos use-after-free con CVSS 9.2 en [php2shell](/blog/php2shell-vulnerabilidades-criticas-php-cve-2026-109618-109619).
+- **WordPress**: la condición de carrera en las actualizaciones del core, explotada y en el KEV desde el 3 de noviembre, en [WordPress 7.1.4](/blog/wordpress-7-1-4-vulnerabilidad-actualizacion-core-cve-2026-119977).
+
+Y en el kernel de Linux, un recordatorio: **SCTPhantom** (CVE-2026-64564), un use-after-free de hace 18 años en SCTP con escalada local y escape de contenedores, corregido en agosto en los kernels estables 6.6.148, 6.12.101, 6.18.42 y 7.1.6. Es un fallo distinto del que Xint encadena con nginx, pero confirma que **SCTP es una superficie que conviene desactivar** si no la usas.
+
+---
+
+## Qué patrón se repite
+
+Si lees la lista de golpe, se ven tres temas:
+
+1. **Memoria en C, otra vez.** nginx2Root son cuatro use-after-free y un desbordamiento de enteros; Node reparó use-after-free y lecturas fuera de límites en su capa nativa de HTTP/2 y TLS. Los fallos de memoria siguen apareciendo en la capa que procesa tráfico no confiable.
+2. **HTTP/2 como máquina de estados difícil de acertar.** El control de flujo, el cierre de streams y los resets aparecen en nginx y en Node a la vez. No es casualidad: son los mismos rincones del protocolo.
+3. **Fallos de lógica en las fronteras entre componentes.** \*sshole no es un bug de OpenSSH solo ni de musl solo, sino de cómo se combinan. Lo mismo ocurre con los saltos de mTLS por SNI en Node.
+
+Y una lección operativa que se repite: **actualizar el paquete no es actualizar el proceso**. En nginx hay que reiniciar, no recargar; en sshd de Alpine hay que reiniciar el servicio; en Docker hay que reconstruir la imagen.
+
+---
+
+## Checklist para hoy
+
+1. **nginx**: versión, funciones activas (HTTP/2, HTTP/3, resolver, mail), actualiza a 1.30.7 / 1.31.9 y **reinicia**. Si tu distro aún no tiene parche, aplica las mitigaciones de la sección 1.
+2. **Alpine / musl**: busca sshd con contraseñas activas, actualiza a 10.6p2 y reinicia, o desactiva `PasswordAuthentication`.
+3. **Node.js**: sube a 22.23.5, 24.22.3 o 26.13.1 y reconstruye las imágenes. Migra desde Node 20.
+4. **Office / Outlook**: aplica el parche de Office, además del de Windows.
+5. **KEV**: revisa si usas GPUStack, FreeSWITCH, IBM Aspera Faspex o SonicWall.
+6. **Navegadores**: Chrome 157 y Firefox 160.
+7. **Kernel**: si no necesitas SCTP, bloquea el módulo y actualiza el kernel.
+
+La buena noticia de hoy es que, a falta de confirmación, **no hay explotación en la naturaleza de nginx2Root**. La ventana entre el parche y el primer exploit público suele ser corta, así que es el momento de actuar.
+
+---
+
+## Fuentes
+
+- <a href="https://nginx.org/en/security_advisories.html" target="_blank" rel="noopener noreferrer">nginx security advisories</a> — nginx.org
+- <a href="https://xint.io/blog/nginx2root-remote-code-execution" target="_blank" rel="noopener noreferrer">NGINX2Root: New Remote Code Execution Vulnerabilities in nginx</a> — Xint
+- <a href="https://securityboulevard.com/2026/11/nginx2root-cve-2026-123007-and-four-more-unauthenticated-remote-code-execution-in-nginx/" target="_blank" rel="noopener noreferrer">NGINX2Root (CVE-2026-123007 and four more)</a> — Security Boulevard
+- <a href="https://www.ox.security/blog/openssh-authentication-bypass-cve-2026-123158" target="_blank" rel="noopener noreferrer">OpenSSH Password Authentication Bypass on Alpine Linux (*sshole)</a> — OX Security
+- <a href="https://nodejs.org/en/blog/vulnerability/november-2026-security-releases" target="_blank" rel="noopener noreferrer">November 2026 Security Releases</a> — nodejs.org
+- <a href="https://www.csoonline.com/article/4247015/november-2026-patch-tuesday-63-critical-microsoft-fixes-plus-an-outlook-zero-day-that-allows-theft-of-hashed-credentials.html" target="_blank" rel="noopener noreferrer">November 2026 Patch Tuesday: 63 critical Microsoft fixes plus an Outlook zero-day</a> — CSO Online
+- <a href="https://www.esecurityplanet.com/vulnerabilities/news-cisa-kev-gpustack-freeswitch-openssh-ibm-november-2026/" target="_blank" rel="noopener noreferrer">CISA Adds Four Exploited Flaws to KEV, Sets Nov. 12 Patch Deadline</a> — eSecurity Planet
+- <a href="https://matrix.tencent.com/en/2026/08/06/sctphantom-CVE-2026-64564" target="_blank" rel="noopener noreferrer">SCTPhantom: An 18-Year-Old SCTP ASCONF Transport Use-After-Free</a> — Tencent
