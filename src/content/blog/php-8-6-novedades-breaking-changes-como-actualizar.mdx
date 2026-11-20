@@ -1,0 +1,267 @@
+---
+title: "PHP 8.6 ya está aquí: novedades, breaking changes y cómo actualizar"
+description: "El 19 de noviembre de 2026 se publicó PHP 8.6.0 con aplicación parcial de funciones, clamp(), la clase Time\\Duration, una API de polling y propiedades readonly con valor por defecto. También cambia los defaults de sesión y trae deprecaciones que conviene revisar antes de actualizar."
+date: 2026-11-20
+cover: "/images/blog/php-8-6-novedades.webp"
+categories: ["Backend", "Noticias", "Desarrollo Web"]
+readingTime: 10
+featured: false
+draft: false
+tags:
+  [
+    "php",
+    "php-8-6",
+    "backend",
+    "novedades",
+    "laravel",
+    "craft-cms",
+    "wordpress",
+    "migracion",
+  ]
+---
+
+## Qué ha pasado
+
+El **19 de noviembre de 2026** se publicó **PHP 8.6.0**. Es una versión con más calidad de vida que revolución: trae un puñado de funciones que simplifican código que escribimos a diario, una API nueva para quien programa servidores asíncronos y varios cambios de comportamiento que **sí pueden romper cosas** si actualizas sin mirar.
+
+La [página de versiones soportadas de php.net](https://www.php.net/supported-versions.php) fija el calendario de PHP 8.6:
+
+| Versión | Lanzamiento | Soporte activo hasta | Soporte de seguridad hasta |
+| --- | --- | --- | --- |
+| PHP 8.5 | 20 nov 2025 | 31 dic 2027 | 31 dic 2029 |
+| **PHP 8.6** | **19 nov 2026** | **31 dic 2028** | **31 dic 2030** |
+
+Si estás en 8.5 tienes margen. Si sigues en una versión más antigua, el [post sobre php2shell](/blog/php2shell-vulnerabilidades-criticas-php-cve-2026-109618-109619) es un buen recordatorio de por qué no conviene quedarse atrás.
+
+---
+
+## Las novedades que más vas a usar
+
+### 1. Aplicación parcial de funciones (`?` y `...`)
+
+Ahora puedes crear un `Closure` llamando a una función con un marcador `?` en lugar de un argumento, o con `...` en lugar de todos los restantes. Se acabaron muchas closures de una línea que solo existían para fijar un parámetro.
+
+```php
+function add(int $a, int $b, int $c = 0): int
+{
+    return $a + $b + $c;
+}
+
+// "?" sustituye exactamente un argumento
+$addOne = add(1, ?);
+var_dump($addOne(5)); // int(6)
+
+// "..." sustituye todos los argumentos restantes
+$addToOne = add(1, ...);
+var_dump($addToOne(2, 3)); // int(6)
+
+// Funciona con cualquier callable, también con funciones internas
+$stripSpaces = str_replace(' ', '', ?);
+var_dump($stripSpaces('a b c')); // string(3) "abc"
+```
+
+Es especialmente cómodo con `array_map()` y `array_filter()`. El propio php.net lo ilustra así:
+
+```php
+$supportsPfa = array_filter($versions, version_compare(?, '8.6', '>='));
+```
+
+### 2. `clamp()`
+
+Una función que todos hemos escrito a mano alguna vez. Limita un valor a un rango:
+
+```php
+var_dump(clamp(110, 0, 100)); // int(100)
+```
+
+Según la nota de lanzamiento, funciona con cualquier valor comparable, incluidos los objetos `Duration` del siguiente punto.
+
+### 3. La clase `Time\Duration`
+
+PHP incorpora por fin un tipo para representar **un intervalo fijo de tiempo**, con precisión de nanosegundos. Es inmutable y se puede comparar con los operadores normales.
+
+```php
+$timeout = \Time\Duration::fromSeconds(2)
+    ->add(\Time\Duration::fromMilliseconds(500));
+
+var_dump($timeout > \Time\Duration::fromSeconds(2)); // bool(true)
+```
+
+El manual lista estos métodos:
+
+- **Constructores:** `fromSeconds()`, `fromMilliseconds()` y `fromIso8601DurationString()`.
+- **Aritmética:** `add()`, `sub()`, `multiplyBy()` y `divideBy()`.
+- **Signo y orden:** `negate()`, `absolute()` y `compare()`, pensado para usarlo al ordenar.
+
+Lanza una excepción si la duración supera el rango representable (unos 292 años) o si el string ISO 8601 no es válido. Combinado con `clamp()` queda un código muy legible para reintentos con backoff:
+
+```php
+use Time\Duration;
+
+$delay = clamp($delay->multiplyBy(2), Duration::fromMilliseconds(100), Duration::fromSeconds(30));
+```
+
+### 4. Propiedades `readonly` con valor por defecto
+
+Antes, una propiedad `readonly` solo se podía inicializar desde el constructor. Ahora admite un valor por defecto, incluso en clases `readonly`:
+
+```php
+class Config
+{
+    public readonly int $timeout = 30;
+}
+
+$config = new Config();
+var_dump($config->timeout); // int(30)
+```
+
+Un detalle importante del manual: el valor por defecto **cuenta como la inicialización**, así que la propiedad no se puede asignar de nuevo, ni siquiera desde el constructor.
+
+### 5. API de polling (`Io\Poll`)
+
+Esta es para quien escribe servidores, workers o bucles de eventos. PHP añade una API de polling formada por:
+
+- Las clases `Io\Poll\Context` e `Io\Poll\Watcher`.
+- Los enums `Io\Poll\Backend` e `Io\Poll\Event`.
+- La interfaz `Io\Poll\Handle` y la clase `StreamPollHandle` para vigilar streams.
+
+Según la nota de lanzamiento, usa el mecanismo nativo de cada sistema (epoll, kqueue, event ports o WSAPoll) y pretende ser una alternativa moderna a `stream_select()`.
+
+No pongo un ejemplo de código a propósito: los ejemplos que circulan no coinciden entre sí en la firma de `add()`, así que mira el RFC y el manual antes de copiar nada.
+
+### 6. Otras novedades útiles
+
+- **`#[\Override]` en constantes de clase.** Si marcas una constante con `#[\Override]` y no existe en el padre, obtienes un error fatal. Es la misma red de seguridad que ya teníamos con los métodos.
+- **Mutar objetos guardados en constantes.** Los objetos almacenados en constantes y constantes de clase ahora se pueden mutar.
+- **Errores de JSON con ubicación.** `json_last_error_msg()` y `JsonException` incluyen dónde está el fallo, algo que se agradece al depurar payloads grandes.
+- **Más cosas.** El ChangeLog añade el enum `SortDirection` y la opción de INI `error_include_args`, que hace consistente cómo se muestran los argumentos de funciones en los errores.
+- **Streams y TLS.** Reanudación de sesiones TLS, soporte de claves PSK externas y TLS 1.3 early data (0-RTT).
+- **PDO PostgreSQL.** `Pdo\Pgsql::ATTR_CHUNK_SIZE` permite recuperar resultados en trozos (requiere libpq 17 o superior).
+
+### Rendimiento
+
+El ChangeLog registra varias optimizaciones internas, entre ellas una caché de first-class callables que comparte instancias durante la petición. No he medido nada, así que no te doy cifras: haz tu propio benchmark con tu aplicación antes de prometer mejoras.
+
+---
+
+## Breaking changes: lo que puede romper tu código
+
+Esta es la parte que más importa antes de actualizar. Todo lo siguiente sale de la [guía de migración oficial](https://www.php.net/manual/en/migration86.incompatible.php) y del [ChangeLog](https://www.php.net/ChangeLog-8.php).
+
+### Defaults de sesión más seguros
+
+El ChangeLog de PHP 8.6.0 registra este cambio:
+
+| Directiva | Antes | Ahora |
+| --- | --- | --- |
+| `session.use_strict_mode` | `0` | `1` |
+| `session.cookie_httponly` | `0` | `1` |
+| `session.cookie_samesite` | sin valor | `"Lax"` |
+
+Es una mejora de seguridad, pero puede afectar a aplicaciones que dependen de cookies accesibles desde JavaScript o de flujos entre dominios. Si ya defines estos valores en tu `php.ini` o con `session_set_cookie_params()`, tu configuración manda. Si dependías de los defaults, **pruébalo en staging**: sobre todo logins con SSO, iframes y embeds.
+
+El ChangeLog también indica que `session.cookie_samesite` ahora rechaza con un aviso los valores inválidos (solo acepta `"Strict"`, `"Lax"`, `"None"` o `""`).
+
+### `trim()`, `ltrim()` y `rtrim()` quitan el salto de página
+
+El carácter de salto de página (`\f`) pasa a formar parte de los caracteres que se recortan por defecto:
+
+```php
+var_dump(trim("\f hello \f"));
+// Desde PHP 8.6.0: string(5) "hello"
+// Antes de PHP 8.6.0: string(9) "\f hello \f"
+```
+
+### `unpack()` y los modificadores de endianness
+
+`unpack()` ahora interpreta `<` o `>` justo después de un código de formato como un modificador de endianness, y no como parte del nombre:
+
+```php
+var_dump(unpack('s<value', "\x01\x00"));
+// Desde PHP 8.6.0: ["value" => 1]
+// Antes de PHP 8.6.0: ["<value" => 1]
+```
+
+Además, un formato como `"C>name"` lanza un `ValueError`, porque `C` no admite modificador. Si tienes código que lee formatos binarios con claves que empiezan por `<` o `>`, revísalo.
+
+### `??` y `empty()` sobre propiedades mágicas
+
+Si `__isset()` escribe la propiedad en la tabla de propiedades, `??` y `empty()` ya no llaman a `__get()` y devuelven directamente el valor recién escrito. Es un caso poco habitual, pero aparece en ORMs y objetos con carga perezosa:
+
+```php
+var_dump($example->foo ?? 'default');
+// Desde PHP 8.6.0: string(14) "from __isset()"
+// Antes de PHP 8.6.0: string(12) "from __get()"
+```
+
+### Más funciones lanzan `ValueError`
+
+La guía de migración lista muchas funciones que ahora fallan con una excepción donde antes truncaban o ignoraban el valor:
+
+- **Bytes NUL en argumentos:** `getenv()`, `putenv()`, `parse_str()`, `setlocale()`, `proc_open()` (en `cwd`) y toda la familia de `file_exists()`, `is_file()`, `stat()`, `filesize()`, etc.
+- **Flags o modos inválidos:** `array_filter()`, `array_change_key_case()`, `pathinfo()` y `scandir()`.
+- **Valores fuera de rango:** `number_format()`, `sleep()` y `usleep()`.
+
+Y `base_convert()`, `bindec()`, `hexdec()` y `octdec()` ahora emiten un aviso cuando no pueden convertir el número con precisión.
+
+### Otros cambios a tener en cuenta
+
+- **Memoria agotada.** Según el ChangeLog, un fallo duro de memoria ahora llama a `abort()` en lugar de `exit()`. Si supervisas procesos, el código de salida cambiará.
+- **`array_intersect()`.** Convierte los valores a string mientras recorre los arrays, no durante las comparaciones del ordenamiento. Puede cambiar el número y el orden de los avisos y de las llamadas a `__toString()`.
+- **DOM.** Propiedades antes documentadas como de solo lectura (como `DOMNode::$nodeType`) pasan a declararse con visibilidad asimétrica (`public private(set)`). El mensaje de error al escribirlas cambia.
+- **COM.** Ya no se pueden clonar objetos variant.
+- **cURL.** El callback de `CURLOPT_READFUNCTION` lanza `ValueError` si devuelve un entero distinto de `0`, `CURL_READFUNC_ABORT` o `CURL_READFUNC_PAUSE`.
+- **FTP.** `ftp_nb_get()` y sus hermanas lanzan un `Error` si la conexión ya está transfiriendo, en lugar de un aviso.
+
+---
+
+## Deprecaciones
+
+Estas funcionalidades siguen funcionando en 8.6, pero emiten un aviso de deprecación. Es el momento de limpiarlas, antes de que desaparezcan:
+
+- `return` dentro de un bloque `finally`.
+- Devolver un valor desde `__construct()` o `__destruct()`, o convertirlos en generadores.
+- Usar `let` o `is` como nombre de clase, función o constante, y `_` como nombre de constante.
+- `is_double()`, `is_long()`, `is_integer()` y `doubleval()`. Usa `is_float()`, `is_int()` y `floatval()`.
+- `spl_object_hash()`. Usa `spl_object_id()`.
+- `strcoll()` y `SORT_LOCALE_STRING`. Usa `Collator`.
+- Las funciones `mb_ereg*`, `mb_split()` y mbregex. Según el ChangeLog, Oniguruma ya no tiene mantenimiento.
+- Pasar objetos a `array_walk()`, `http_build_query()` y `mb_convert_variables()`.
+- Manejadores de sesión que no implementan `create_sid()` y `validateId()`.
+- `metaphone()`, `mysqli_get_charset()` y `mysqli_stmt_init()`.
+
+El ChangeLog recoge más; esta es la lista de lo que más probablemente te toque. La forma más rápida de encontrarlas en tu proyecto es ejecutar la suite de tests con `error_reporting = E_ALL` y revisar los `E_DEPRECATED`.
+
+---
+
+## Cómo actualizar sin sustos
+
+1. **Mira tus dependencias primero.** Revisa que Composer resuelva con `php: ^8.6`. Muchos paquetes tardan semanas en declarar soporte oficial. Lanza `composer update --dry-run` en una rama.
+2. **Activa los avisos.** En staging, `error_reporting = E_ALL` y registra todo lo que salga como `E_DEPRECATED`.
+3. **Prueba las sesiones.** Login, logout, "recordarme", SSO e integraciones embebidas. Son lo que más probablemente cambie por los nuevos defaults.
+4. **Busca los patrones de la lista de breaking changes.** `unpack(`, `trim(` con `\f`, funciones de archivos con rutas que puedan contener NUL, `getenv(` y `array_filter(` con modo.
+5. **Actualiza la imagen de Docker o el paquete del sistema** y reinicia PHP-FPM o Apache. Actualizar el paquete no es actualizar el proceso en marcha.
+6. **Despliega por fases.** Un entorno de staging primero y, si puedes, un porcentaje del tráfico después.
+
+### ¿Y mi CMS o framework?
+
+No he comprobado la compatibilidad de WordPress, Laravel o Craft CMS con PHP 8.6, así que no te la afirmo. Lo que sí sé por posts anteriores es que **Craft CMS 6 exige PHP 8.5 como mínimo**, como cuento en el [post sobre la beta de Craft 6](/blog/craft-cms-6-beta-novedades-breaking-changes-como-probarla). Antes de subir un proyecto en producción a 8.6, consulta los requisitos oficiales de tu CMS o framework y espera a que declaren soporte.
+
+---
+
+## Mi opinión
+
+PHP 8.6 es una versión **cómoda de adoptar y con pocas razones para correr**. Lo mejor son las pequeñas piezas que quitan código repetitivo: la aplicación parcial, `clamp()` y `Duration`. La API de polling es la novedad más ambiciosa, pero solo cambia la vida de quien escribe servidores.
+
+Lo que merece atención real son los **defaults de sesión**, porque cambian el comportamiento de aplicaciones que no tocaste. Para un proyecto nuevo, empieza ya con 8.6. Para uno en producción, no hay prisa: tienes soporte activo en 8.5 hasta finales de 2027. Aprovecha el tiempo para limpiar deprecaciones y probarlo en staging.
+
+---
+
+## Fuentes
+
+- <a href="https://www.php.net/releases/8.6/en.php" target="_blank" rel="noopener noreferrer">PHP 8.6.0 Released!</a> — php.net
+- <a href="https://www.php.net/manual/en/migration86.new-features.php" target="_blank" rel="noopener noreferrer">Nuevas funcionalidades en PHP 8.6</a> — Manual de PHP
+- <a href="https://www.php.net/manual/en/migration86.incompatible.php" target="_blank" rel="noopener noreferrer">Cambios incompatibles hacia atrás en PHP 8.6</a> — Manual de PHP
+- <a href="https://www.php.net/ChangeLog-8.php" target="_blank" rel="noopener noreferrer">ChangeLog de PHP 8</a> — php.net
+- <a href="https://www.php.net/supported-versions.php" target="_blank" rel="noopener noreferrer">Versiones soportadas</a> — php.net
+- <a href="https://laravel-news.com/php-8-6" target="_blank" rel="noopener noreferrer">PHP 8.6</a> — Laravel News
